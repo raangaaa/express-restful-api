@@ -10,7 +10,6 @@ datasource db {
 enum Gender {
   Male
   Female
-  Other
 }
 
 enum Pronouns {
@@ -20,20 +19,28 @@ enum Pronouns {
   DontSpecify
 }
 
+enum Roles {
+  SuperAdmin
+  Admin
+  User
+}
+
 model User {
   id       Int      @id @default(autoincrement())
-  name     String?  @db.VarChar(255)
   email    String   @unique(map: "email") @db.VarChar(255)
   username String   @unique(map: "username") @db.VarChar(255)
+  password String   @db.VarChar(255)
+  role     Roles    @default(User)
   Profile  Profile?
 }
 
 model Profile {
-  id        Int     @id @default(autoincrement())
-  bio       String? @db.Text
-  url       String  @db.Text
-  pronouns  Pronouns
-  gender    Gender
-  userId    Int     @unique(map: "userId")
-  User      User    @relation(fields: [userId], references: [id], onUpdate: Restrict, map: "Profile_ibfk_1")
+  id        Int      @id @default(autoincrement())
+  name      String?  @db.VarChar(255)
+  bio       String?  @db.Text
+  url       String?  @db.Text
+  pronouns  Pronouns?
+  gender    Gender?
+  userId    Int      @unique(map: "userId")
+  User      User     @relation(fields: [userId], references: [id], onUpdate: Restrict, map: "Profile_ibfk_1")
 }
