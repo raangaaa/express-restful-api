@@ -15,6 +15,7 @@ if (!fs.existsSync(filePath)) {
 const fileCache = {
     get(key) {
         const cache = JSON.parse(fs.readFileSync(filePath, "utf-8"));
+        if (cache[key].expiresAt < Date.now()) delete cache[key];
         return cache[key] ?? null;
     },
     

@@ -25,22 +25,39 @@ enum Roles {
   User
 }
 
+enum TokenType {
+  PasswordReset
+  VerifyEmail
+}
+
 model User {
-  id       Int      @id @default(autoincrement())
-  email    String   @unique(map: "email") @db.VarChar(255)
-  username String   @unique(map: "username") @db.VarChar(255)
-  password String   @db.VarChar(255)
-  role     Roles    @default(User)
-  Profile  Profile?
+  id              Int       @id @default(autoincrement())
+  email           String    @unique(map: "email") @db.VarChar(255)
+  username        String    @unique(map: "username") @db.VarChar(255)
+  password        String    @db.VarChar(255)
+  role            Roles     @default(User)
+  email_verified  DateTime? @db.DateTime()
+  refresh_token   String?
+  Profile         Profile?
+
+  Token Token[]   @relation(map: "Token_ibfk_1")
 }
 
 model Profile {
-  id        Int      @id @default(autoincrement())
-  name      String?  @db.VarChar(255)
-  bio       String?  @db.Text
-  url       String?  @db.Text
+  id        Int       @id @default(autoincrement())
+  name      String    @db.VarChar(255)
+  bio       String?   @db.Text
+  url       String?   @db.Text
   pronouns  Pronouns?
   gender    Gender?
-  userId    Int      @unique(map: "userId")
-  User      User     @relation(fields: [userId], references: [id], onUpdate: Restrict, map: "Profile_ibfk_1")
+  userId    Int       @unique(map: "userId")
+  User      User      @relation(fields: [userId], references: [id], onUpdate: Restrict, map: "Profile_ibfk_1")
+}
+
+model Token {
+  token     String    @db.VarChar(66) @unique
+  userId    Int       @unique(map: "userId")
+  expires   DateTime  @db.DateTime()
+  TokenType TokenType
+  User      User      @relation(fields: [userId], references: [id], onUpdate: Restrict, map: "Token_ibfk_1")
 }

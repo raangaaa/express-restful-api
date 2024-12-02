@@ -7,6 +7,8 @@ import corsOptions from "./configs/cors";
 import http2 from "http2";
 import fs from "fs";
 import env from "./configs/env";
+import routes from "./routes/routes";
+import error from "./src/middlewares/error"
 
 const app = express();
 
@@ -15,8 +17,11 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(compression());
 app.use(cors(corsOptions));
-app.use(express.static("public"));
 app.use(logHTTP());
+app.use(express.static("public"));
+app.use("/api/v1", routes);
+app.use(error.notFound);
+app.use(error.handler);
 
 const serverOptions = {
 	key: fs.readFileSync("./ssl/server.key"),
