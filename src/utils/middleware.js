@@ -1,4 +1,4 @@
-import guest from "../middlewares/guest";
+import guest from "@middlewares/guest";
 
 const listMiddleware = {
 	guest,

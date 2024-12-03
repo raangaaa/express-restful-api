@@ -21,7 +21,7 @@ const signup = {
 			.required()
 			.valid(Joi.ref("password"))
 			.messages({
-				"any.only": "Password dan confirmPassword harus sama.",
+				"any.only": "Password dan confirm password harus sama.",
 			})
 			.strip(),
 	}).options({ stripUnknown: true })

@@ -2,7 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import redis from 'redis';
 import Memcached from 'memcached'
-import { cacheConfig, cacheDriver } from "../../configs/cache";
+import { cacheConfig, cacheDriver } from "~/configs/cache";
 
 //     FILE     ---------------------------------------------------------
 

@@ -1,4 +1,4 @@
-import errorAPI from "../utils/errorAPI";
+import errorAPI from "@utils/errorAPI";
 import httpStatus from "http-status";
 
 const guest = (req, res, next) => {

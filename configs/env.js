@@ -1,8 +1,6 @@
 import dotenv from "dotenv";
 import Joi from "joi";
 
-// Configuration and validate for environment variabel 
-
 dotenv.config();
 
 const envValidate = Joi.object()
@@ -48,6 +46,8 @@ const envValidate = Joi.object()
 			.allow("")
 			.empty("")
 			.default(30),
+
+		CSRF_SECRET: Joi.string().required(),
 
 		JWT_ACCESS_TOKEN_SECRET_PRIVATE: Joi.string().required(),
 		JWT_ACCESS_TOKEN_SECRET_PUBLIC: Joi.string().required(),
@@ -99,6 +99,8 @@ export default {
 		env.VERIFY_EMAIL_TOKEN_EXPIRATION_MINUTES,
 	RESET_PASSWORD_TOKEN_EXPIRATION_MINUTES:
 		env.RESET_PASSWORD_TOKEN_EXPIRATION_MINUTES,
+
+	CSRF_SECRET: Buffer.from(env.CSRF_SECRET, "base64"),
 
 	JWT_ACCESS_TOKEN_SECRET_PRIVATE: Buffer.from(
 		env.JWT_ACCESS_TOKEN_SECRET_PRIVATE,

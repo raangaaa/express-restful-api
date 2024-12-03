@@ -1,7 +1,7 @@
 import httpStatus from "http-status";
-import config from "../../configs/env";
-import { logger } from "../../configs/logging";
-import errorAPI from "../utils/errorAPI";
+import env from "~/configs/env";
+import { logger } from "~/configs/logging";
+import errorAPI from "@utils/errorAPI";
 
 export const notFound = (req, res, next) => {
 	return next(
@@ -11,7 +11,7 @@ export const notFound = (req, res, next) => {
 
 export const handler = (err, req, res, next) => {
 	let { status, message } = err;
-	if (config.NODE_ENV === "production" && !err.isOperational) {
+	if (env.NODE_ENV === "production" && !err.isOperational) {
 		status = httpStatus.INTERNAL_SERVER_ERROR;
 		message = httpStatus[httpStatus.INTERNAL_SERVER_ERROR];
 	}
@@ -19,7 +19,7 @@ export const handler = (err, req, res, next) => {
 	return res.status(status).json({
 		status: status,
 		errors: message,
-		...(config.NODE_ENV === "development" && { stack: err.stack }),
+		...(env.NODE_ENV === "development" && { stack: err.stack }),
 	});
 };
 

@@ -37,10 +37,9 @@ model User {
   password        String    @db.VarChar(255)
   role            Roles     @default(User)
   email_verified  DateTime? @db.DateTime()
-  refresh_token   String?
   Profile         Profile?
-
-  Token Token[]   @relation(map: "Token_ibfk_1")
+  Token           Token[]   @relation(map: "Token_ibfk_1")
+  Session         Session[] @relation(map: "Session_ibfk_1")
 }
 
 model Profile {
@@ -55,9 +54,19 @@ model Profile {
 }
 
 model Token {
-  token     String    @db.VarChar(66) @unique
-  userId    Int       @unique(map: "userId")
-  expires   DateTime  @db.DateTime()
-  TokenType TokenType
-  User      User      @relation(fields: [userId], references: [id], onUpdate: Restrict, map: "Token_ibfk_1")
+  token       String    @db.VarChar(66) @unique
+  userId      Int       @unique(map: "userId")
+  expiresIn   DateTime  @db.DateTime()
+  token_type  TokenType
+  User        User      @relation(fields: [userId], references: [id], onUpdate: Restrict, map: "Token_ibfk_1")
+}
+
+model Session {
+  userId        Int       @unique(map: "userId")
+  refresh_token String    @db.VarChar(255)
+  expiresIn     DateTime  @db.DateTime()
+  user_agent    String    @db.Text
+  ip_address    String    @db.VarChar(45)
+  login_time    DateTime  @db.DateTime()
+  User          User      @relation(fields: [userId], references: [id], onUpdate: Restrict, map: "Session_ibfk_1")
 }

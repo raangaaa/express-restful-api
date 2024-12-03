@@ -1,4 +1,4 @@
-import env from "./env"
+import env from "~/configs/env"
 
 // Configuration for cors options with library cors
 
