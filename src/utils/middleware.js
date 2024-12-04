@@ -1,7 +1,11 @@
 import guest from "@middlewares/guest";
+import auth from "@middlewares/auth";
+import verified from "@middlewares/verified";
 
 const listMiddleware = {
 	guest,
+	auth,
+	verified,
 };
 
 const middleware = (middlewares) => async (req, res, next) => {

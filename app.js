@@ -10,6 +10,7 @@ import fs from "fs";
 import env from "~/configs/env";
 import routes from "~/routes/routes";
 import error from "@middlewares/error"
+import csrfMiddleware from "@middlewares/csrf";
 
 const app = express();
 
@@ -19,6 +20,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(compression());
 app.use(cors(corsOptions));
 app.use(logHTTP());
+app.use(csrfMiddleware);
 app.use(express.static("public"));
 app.use("/api/v1", routes);
 app.use(error.notFound);
