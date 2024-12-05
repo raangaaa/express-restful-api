@@ -3,6 +3,7 @@ import express from "express";
 import cors from "cors";
 import compression from "compression";
 import helmet from "helmet";
+import cookieParser from "cookie-parser";
 import { logHTTP } from "~/configs/logging";
 import corsOptions from "~/configs/cors";
 import http2 from "http2";
@@ -11,11 +12,14 @@ import env from "~/configs/env";
 import routes from "~/routes/routes";
 import error from "@middlewares/error"
 import csrfMiddleware from "@middlewares/csrf";
+import rateLimiter from "@middlewares/rateLimiter";
 
 const app = express();
 
 app.use(helmet());
+app.use(rateLimiter)
 app.use(express.json());
+app.use(cookieParser(env.COOKIE_SECRET));
 app.use(express.urlencoded({ extended: true }));
 app.use(compression());
 app.use(cors(corsOptions));

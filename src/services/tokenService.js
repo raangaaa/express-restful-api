@@ -2,26 +2,26 @@ import prisma from "~/prisma/prisma";
 import jwt from "jsonwebtoken";
 import csrf from "csrf";
 import crypto from "crypto";
-import httpStatus from "http-status";
 import dayjs from "dayjs";
 import env from "~/configs/env";
 import errorAPI from "@utils/errorAPI";
+import status from "statuses";
 
+const csrfTokens = new csrf();
 
-prisma.$on("query", (e) => {
-	logger.log({
-		level: "database",
-		message: `Query: ${e.query}\nParams: ${e.params}\nDuration: ${e.duration}ms`,
-	});
-});
+const hashToken = async (token) => {
+	return crypto.createHash("SHA256").update(token).digest("hex");
+};
 
 const generateRandomToken = async (length = 64) => {
 	return crypto.randomBytes(length).toString("hex");
 };
 
 const generateAccessToken = async (dataUser) => {
-	const expiresIn = dayjs().add(env.JWT_ACCESS_TOKEN_EXPIRATION_MINUTES, "minute").unix();
-	return jwt.sign(dataUser, env.JWT_ACCESS_TOKEN_SECRET_PRIVATE, {
+	const expiresIn = dayjs()
+		.add(env.ACCESS_TOKEN_EXPIRATION_MINUTES, "minute")
+		.unix();
+	return jwt.sign(dataUser, env.ACCESS_TOKEN_SECRET_PRIVATE, {
 		algorithm: "RS256",
 		expiresIn,
 	});
@@ -29,20 +29,45 @@ const generateAccessToken = async (dataUser) => {
 
 const verifyAccessToken = async (accessToken) => {
 	try {
-		return jwt.verify(accessToken, env.JWT_ACCESS_TOKEN_SECRET_PUBLIC, {
+		return jwt.verify(accessToken, env.ACCESS_TOKEN_SECRET_PUBLIC, {
 			algorithms: ["RS256"],
 		});
 	} catch (err) {
 		if (err.name === "TokenExpiredError") {
-			throw new errorAPI("Access token expired", httpStatus.UNAUTHORIZED);
+			throw new errorAPI("Access expired", status("UNAUTHORIZED"));
 		} else if (err.name === "JsonWebTokenError") {
-			throw new errorAPI("Access token is invalid", httpStatus.UNAUTHORIZED);
+			throw new errorAPI("Access is invalid", status("UNAUTHORIZED"));
 		}
+
 		throw err;
 	}
 };
 
-const csrfTokens = new csrf();
+const generateRefreshToken = async (dataUser) => {
+	const expiresIn = dayjs()
+		.add(env.REFRESH_TOKEN_EXPIRATION_DAYS, "day")
+		.unix();
+	return jwt.sign(dataUser, env.REFRESH_TOKEN_SECRET_PRIVATE, {
+		algorithm: "RS256",
+		expiresIn,
+	});
+};
+
+const verifyRefreshToken = async (refreshToken) => {
+	try {
+		return jwt.verify(refreshToken, env.REFRESH_TOKEN_SECRET_PUBLIC, {
+			algorithms: ["RS256"],
+		});
+	} catch (err) {
+		if (err.name === "TokenExpiredError") {
+			throw new errorAPI("Session expired", status("UNAUTHORIZED"));
+		} else if (err.name === "JsonWebTokenError") {
+			throw new errorAPI("Session is invalid", status("UNAUTHORIZED"));
+		}
+
+		throw err;
+	}
+};
 
 const generateCsrfToken = async () => {
 	return csrfTokens.create(env.CSRF_SECRET);
@@ -68,14 +93,10 @@ const generateResetPasswordToken = async (email) => {
 		},
 	});
 
-	if (!user) {
-		throw new errorAPI(`User with email ${email} not found`, httpStatus.NOT_FOUND);
-	}
-
 	const passwordResetToken = await prisma.token.create({
 		data: {
 			token,
-			userId: user.id,
+			user_id: user.id,
 			expiresIn,
 			token_type: "PasswordReset",
 		},
@@ -93,7 +114,7 @@ const generateVerifyEmailToken = async (user) => {
 	const verifyEmailToken = await prisma.token.create({
 		data: {
 			token,
-			userId: user.id,
+			user_id: user.id,
 			expiresIn,
 			token_type: "VerifyEmail",
 		},
@@ -109,21 +130,24 @@ const verifyToken = async (token, type) => {
 			token_type: type,
 		},
 	});
-	
-	if (!dbToken) throw new errorAPI("Token not found", httpStatus.UNAUTHORIZED);
-	
+
+	if (!dbToken) throw new errorAPI("Token not found", status("UNAUTHORIZED"));
+
 	const expiresIn = dayjs(dbToken.expiresIn, "YYYY-MM-DD HH:mm:ss");
 
-	if(expiresIn.isBefore(dayjs())) throw new errorAPI("Token expired", httpStatus.UNAUTHORIZED);
+	if (expiresIn.isBefore(dayjs()))
+		throw new errorAPI("Token expired", status("UNAUTHORIZED"));
 
 	return dbToken;
 };
 
-
 export default {
+	hashToken,
 	generateRandomToken,
 	generateAccessToken,
 	verifyAccessToken,
+	generateRefreshToken,
+	verifyRefreshToken,
 	generateCsrfToken,
 	verifyCsrfToken,
 	generateResetPasswordToken,

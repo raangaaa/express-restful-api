@@ -1,8 +1,8 @@
-import httStatus from "http-status";
 import tokenService from "@services/tokenService";
-import cacheService from "@services/cacheService";
 import errorAPI from "@utils/errorAPI";
 import prisma from "~/prisma/prisma";
+import status from "statuses";
+import { logger } from "~/configs/logging";
 
 const verified = async (req, res, next) => {
 	try {
@@ -10,12 +10,12 @@ const verified = async (req, res, next) => {
 			req.headers["authorization"] || req.headers["Authorization"];
 
 		if (!accessToken) {
-			return next(new errorAPI("Access token missing", httStatus.UNAUTHORIZED));
+			return next(new errorAPI("Access token missing", status("UNAUTHORIZED")));
 		}
 
 		if (!accessToken.startsWith("Bearer ")) {
 			return next(
-				new errorAPI("Invalid access token format", httStatus.UNAUTHORIZED)
+				new errorAPI("Invalid access token format", status("UNAUTHORIZED"))
 			);
 		}
 
@@ -23,25 +23,18 @@ const verified = async (req, res, next) => {
 
 		const payload = await tokenService.verifyAccessToken(token);
 
-		const session = await cacheService.get(`session-${payload.id}-1`);
-
-		if (!session) {
-			return next(new errorAPI("Session not found", httStatus.UNAUTHORIZED));
-		}
-
 		const user = await prisma.user.findFirst({
 			where: {
-				id: session.userId,
+				id: payload.id,
 			},
 			select: {
 				id: true,
-				email: true,
 				email_verified: true,
 			},
 		});
 
 		if (!user || !user.email_verified) {
-			return next(new errorAPI("Email not verified", httStatus.UNAUTHORIZED));
+			return next(new errorAPI("Email not verified", status("UNAUTHORIZED")));
 		}
 
 		next();
@@ -50,12 +43,7 @@ const verified = async (req, res, next) => {
 			return next(new errorAPI(err.message, err.status));
 		}
 
-		return next(
-			new errorAPI(
-				"An unexpected error occurred",
-				httStatus.INTERNAL_SERVER_ERROR
-			)
-		);
+		return next(err);
 	}
 };
 

@@ -31,42 +31,47 @@ enum TokenType {
 }
 
 model User {
-  id              Int       @id @default(autoincrement())
+  id              BigInt    @id @default(autoincrement())
   email           String    @unique(map: "email") @db.VarChar(255)
   username        String    @unique(map: "username") @db.VarChar(255)
   password        String    @db.VarChar(255)
   role            Roles     @default(User)
   email_verified  DateTime? @db.DateTime()
+
   Profile         Profile?
   Token           Token[]   @relation(map: "Token_ibfk_1")
   Session         Session[] @relation(map: "Session_ibfk_1")
 }
 
 model Profile {
-  id        Int       @id @default(autoincrement())
+  id        BigInt    @id @default(autoincrement())
   name      String    @db.VarChar(255)
   bio       String?   @db.Text
   url       String?   @db.Text
   pronouns  Pronouns?
   gender    Gender?
-  userId    Int       @unique(map: "userId")
-  User      User      @relation(fields: [userId], references: [id], onUpdate: Restrict, map: "Profile_ibfk_1")
+  user_id   BigInt    @unique
+
+  User      User      @relation(fields: [user_id], references: [id], onUpdate: Restrict, map: "Profile_ibfk_1")
 }
 
 model Token {
   token       String    @db.VarChar(66) @unique
-  userId      Int       @unique(map: "userId")
+  user_id     BigInt      
   expiresIn   DateTime  @db.DateTime()
   token_type  TokenType
-  User        User      @relation(fields: [userId], references: [id], onUpdate: Restrict, map: "Token_ibfk_1")
+
+  User        User      @relation(fields: [user_id], references: [id], onUpdate: Restrict, map: "Token_ibfk_1")
 }
 
 model Session {
-  userId        Int       @unique(map: "userId")
-  refresh_token String    @db.VarChar(255)
+  id            BigInt    @id @default(autoincrement())
+  user_id       BigInt    
+  refresh_token String    @db.VarChar(255) @unique
   expiresIn     DateTime  @db.DateTime()
   user_agent    String    @db.Text
   ip_address    String    @db.VarChar(45)
-  login_time    DateTime  @db.DateTime()
-  User          User      @relation(fields: [userId], references: [id], onUpdate: Restrict, map: "Session_ibfk_1")
+  login_time    DateTime  @db.DateTime() @default(now())
+  
+  User          User      @relation(fields: [user_id], references: [id], onUpdate: Restrict, map: "Session_ibfk_1")
 }

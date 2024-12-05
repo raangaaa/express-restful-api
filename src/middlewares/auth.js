@@ -1,6 +1,7 @@
-import httStatus from "http-status";
 import tokenService from "@services/tokenService";
 import errorAPI from "@utils/errorAPI";
+import status from "statuses";
+import { logger } from "~/configs/logging";
 
 const auth = async (req, res, next) => {
 	try {
@@ -8,18 +9,30 @@ const auth = async (req, res, next) => {
 			req.headers["authorization"] || req.headers["Authorization"];
 
 		if (!accessToken) {
-			return next(new errorAPI("Access token missing", httStatus.UNAUTHORIZED));
+			return next(new errorAPI("Access token missing", status("UNAUTHORIZED")));
 		}
 
 		if (!accessToken.startsWith("Bearer ")) {
 			return next(
-				new errorAPI("Invalid access token format", httStatus.UNAUTHORIZED)
+				new errorAPI("Invalid access token format", status("UNAUTHORIZED"))
 			);
 		}
 
 		const token = accessToken.split(" ")[1];
 
-		await tokenService.verifyAccessToken(token);
+		const payloadAccessToken = await tokenService.verifyAccessToken(token);
+		const payloadRefreshToken = await tokenService.verifyRefreshToken(
+			req.signedCookies["refresh_token"]
+		);
+
+		if (payloadAccessToken.id !== payloadRefreshToken.id) {
+			return next(
+				new errorAPI(
+					"Session or Access token is invalid",
+					status("UNAUTHORIZED")
+				)
+			);
+		}
 
 		next();
 	} catch (err) {
@@ -27,12 +40,7 @@ const auth = async (req, res, next) => {
 			return next(new errorAPI(err.message, err.status));
 		}
 
-		return next(
-			new errorAPI(
-				"An unexpected error occurred",
-				httStatus.INTERNAL_SERVER_ERROR
-			)
-		);
+		return next(err);
 	}
 };
 

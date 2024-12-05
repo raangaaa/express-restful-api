@@ -37,7 +37,6 @@ const envValidate = Joi.object()
 		SMTP_PASSWORD: Joi.string().allow("").empty(""),
 		EMAIL_FROM: Joi.string().allow("").empty(""),
 
-		REFRESH_TOKEN_EXPIRATION_DAYS: Joi.number().allow("").empty("").default(7),
 		VERIFY_EMAIL_TOKEN_EXPIRATION_MINUTES: Joi.number()
 			.allow("")
 			.empty("")
@@ -48,13 +47,18 @@ const envValidate = Joi.object()
 			.default(30),
 
 		CSRF_SECRET: Joi.string().required(),
+		COOKIE_SECRET: Joi.string().required(),
 
-		JWT_ACCESS_TOKEN_SECRET_PRIVATE: Joi.string().required(),
-		JWT_ACCESS_TOKEN_SECRET_PUBLIC: Joi.string().required(),
-		JWT_ACCESS_TOKEN_EXPIRATION_MINUTES: Joi.number()
+		REFRESH_TOKEN_EXPIRATION_DAYS: Joi.number().allow("").empty("").default(15),
+		REFRESH_TOKEN_SECRET_PRIVATE: Joi.string().required(),
+		REFRESH_TOKEN_SECRET_PUBLIC: Joi.string().required(),
+
+		ACCESS_TOKEN_SECRET_PRIVATE: Joi.string().required(),
+		ACCESS_TOKEN_SECRET_PUBLIC: Joi.string().required(),
+		ACCESS_TOKEN_EXPIRATION_MINUTES: Joi.number()
 			.allow("")
 			.empty("")
-			.default(240),
+			.default(30),
 	})
 	.unknown();
 
@@ -94,21 +98,31 @@ export default {
 	SMTP_PASSWORD: env.SMTP_PASSWORD,
 	EMAIL_FROM: env.EMAIL_FROM,
 
-	REFRESH_TOKEN_EXPIRATION_DAYS: env.REFRESH_TOKEN_EXPIRATION_DAYS,
 	VERIFY_EMAIL_TOKEN_EXPIRATION_MINUTES:
 		env.VERIFY_EMAIL_TOKEN_EXPIRATION_MINUTES,
 	RESET_PASSWORD_TOKEN_EXPIRATION_MINUTES:
 		env.RESET_PASSWORD_TOKEN_EXPIRATION_MINUTES,
 
 	CSRF_SECRET: Buffer.from(env.CSRF_SECRET, "base64"),
+	COOKIE_SECRET: Buffer.from(env.COOKIE_SECRET, "base64"),
 
-	JWT_ACCESS_TOKEN_SECRET_PRIVATE: Buffer.from(
-		env.JWT_ACCESS_TOKEN_SECRET_PRIVATE,
+	REFRESH_TOKEN_EXPIRATION_DAYS: env.REFRESH_TOKEN_EXPIRATION_DAYS,
+	REFRESH_TOKEN_SECRET_PRIVATE: Buffer.from(
+		env.REFRESH_TOKEN_SECRET_PRIVATE,
 		"base64"
 	),
-	JWT_ACCESS_TOKEN_SECRET_PUBLIC: Buffer.from(
-		env.JWT_ACCESS_TOKEN_SECRET_PUBLIC,
+	REFRESH_TOKEN_SECRET_PUBLIC: Buffer.from(
+		env.REFRESH_TOKEN_SECRET_PUBLIC,
 		"base64"
 	),
-	JWT_ACCESS_TOKEN_EXPIRATION_MINUTES: env.JWT_ACCESS_TOKEN_EXPIRATION_MINUTES,
+
+	ACCESS_TOKEN_EXPIRATION_MINUTES: env.ACCESS_TOKEN_EXPIRATION_MINUTES,
+	ACCESS_TOKEN_SECRET_PRIVATE: Buffer.from(
+		env.ACCESS_TOKEN_SECRET_PRIVATE,
+		"base64"
+	),
+	ACCESS_TOKEN_SECRET_PUBLIC: Buffer.from(
+		env.ACCESS_TOKEN_SECRET_PUBLIC,
+		"base64"
+	),
 };

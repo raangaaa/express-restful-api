@@ -1,12 +1,14 @@
 import errorAPI from "@utils/errorAPI";
-import httpStatus from "http-status";
+import status from "statuses";
 
 const guest = (req, res, next) => {
-    if(req.headers.authorization) {
-        return next(new errorAPI(httpStatus[httpStatus.BAD_REQUEST], httpStatus.BAD_REQUEST));
-    }
+	if (req.headers["authorization"] || req.signedCookies["refresh_token"]) {
+		return next(
+			new errorAPI("Only guest user can access this", status("BAD_REQUEST"))
+		);
+	}
 
-    next();
-}
+	next();
+};
 
 export default guest;
