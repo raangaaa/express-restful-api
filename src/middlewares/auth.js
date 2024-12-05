@@ -1,7 +1,6 @@
 import tokenService from "@services/tokenService";
 import errorAPI from "@utils/errorAPI";
 import status from "statuses";
-import { logger } from "~/configs/logging";
 
 const auth = async (req, res, next) => {
 	try {
@@ -33,6 +32,8 @@ const auth = async (req, res, next) => {
 				)
 			);
 		}
+
+		req.user = payloadAccessToken
 
 		next();
 	} catch (err) {

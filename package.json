@@ -41,11 +41,11 @@
     "prisma": "^5.22.0"
   },
   "_moduleAliases": {
-    "~": "./",
-    "@controllers": "./src/controllers",
-    "@middlewares": "./src/middlewares",
-    "@services": "./src/services",
-    "@utils": "./src/utils",
-    "@validations": "./src/validations"
+    "@controllers": "./src/controllers/",
+    "@middlewares": "./src/middlewares/",
+    "@services": "./src/services/",
+    "@utils": "./src/utils/",
+    "@validations": "./src/validations/",
+    "~": "./"
   }
 }

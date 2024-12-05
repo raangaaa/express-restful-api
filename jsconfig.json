@@ -9,6 +9,6 @@
 			"@utils/*": ["src/utils/*"],
 			"@validations/*": ["src/validations/*"]
 		}
-	},
+	},	
 	"exclude": ["node_modules"]
 }

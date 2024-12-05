@@ -8,15 +8,14 @@ export const notFound = (req, res, next) => {
 };
 
 export const handler = (err, req, res, next) => {
-	let { status, message } = err;
 	logger.error(err.stack);
 
 	if (err instanceof errorAPI) {
-		return res.status(status).json({
+		return res.status(err.status).json({
 			success: false,
-			status: status,
-			message: message,
-			errors: [message],
+			status: err.status,
+			message: err.message,
+			errors: [err.message],
 			...(env.NODE_ENV === "development" && { stack: err.stack }),
 		});
 	}

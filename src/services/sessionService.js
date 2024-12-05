@@ -4,6 +4,15 @@ import env from "~/configs/env";
 import dayjs from "dayjs";
 import { logger } from "~/configs/logging";
 
+
+const getOneSession = async (refreshToken) => {
+	const payloadRefreshToken = await tokenService.verifyRefreshToken(refreshToken);
+	const hashedRefreshToken = await tokenService.hashToken(refreshToken);
+	const key = `session:${payloadRefreshToken.id}:${hashedRefreshToken}`;
+
+	return await cacheService.get(key);
+};
+
 const getAllSesssion = async (userId) => {
 	const patternkey = `session:${userId}:*`;
 
@@ -33,14 +42,14 @@ const setSession = async (userId, refreshToken, ipAddress, userAgent) => {
 };
 
 const delSession = async (refreshToken) => {
-	const payload = await tokenService.verifyRefreshToken(refreshToken);
+	const payloadRefreshToken = await tokenService.verifyRefreshToken(refreshToken);
 	const hashedRefreshToken = await tokenService.hashToken(refreshToken);
 
-	await cacheService.del(`session:${payload.id}:${hashedRefreshToken}`);
+	await cacheService.del(`session:${payloadRefreshToken.id}:${hashedRefreshToken}`);
 
 	logger.info(
 		`User Id: ${userId} deleting session for ${userAgent} and IP ${ipAddress}`
 	);
 };
 
-export default { getAllSesssion, setSession, delSession };
+export default { getOneSession, getAllSesssion, setSession, delSession };

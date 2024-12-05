@@ -1,5 +1,4 @@
 import prisma from "~/prisma/prisma";
-import httpStatus from "http-status";
 import bcrypt from "bcrypt";
 import sanitizeAndValidate from "@utils/validate";
 import authValidation from "@validations/authValidation";
@@ -40,6 +39,7 @@ const signup = async (req, res) => {
 		return res.status(status("CREATED")).json({
 			success: true,
 			status: status("CREATED"),
+			message: "Signup succesfull",
 			data: {
 				id: user.id,
 				name: user.name,
@@ -54,6 +54,7 @@ const signup = async (req, res) => {
 			return res.status(err.status).json({
 				success: false,
 				status: err.status,
+				message: err.message,
 				errors: [err.message],
 			});
 		}
@@ -61,7 +62,8 @@ const signup = async (req, res) => {
 		return res.status(status("INTERNAL_SERVER_ERROR")).json({
 			success: false,
 			status: status("INTERNAL_SERVER_ERROR"),
-			error: "An error occurred during signup.",
+			message: "An error occurred during signup",
+			errors: ["An error occurred during signup"],
 		});
 	}
 };
@@ -110,7 +112,6 @@ const signin = async (req, res) => {
 
 		const userData = {
 			id: user.id,
-			role: user.role,
 		};
 
 		const accessToken = await tokenService.generateAccessToken(userData);
@@ -136,6 +137,7 @@ const signin = async (req, res) => {
 		return res.status(status("OK")).json({
 			success: true,
 			status: status("OK"),
+			message: "Signin successfull",
 			data: {
 				user: {
 					id: user.id,
@@ -165,10 +167,218 @@ const signin = async (req, res) => {
 		return res.status(status("INTERNAL_SERVER_ERROR")).json({
 			success: false,
 			status: status("INTERNAL_SERVER_ERROR"),
-			message: "An error occurred during signup.",
-			errors: ["An error occurred during signup."],
+			message: "An error occurred during signin.",
+			errors: ["An error occurred during signin."],
 		});
 	}
 };
 
-export default { signup, signin };
+const signout = async (req, res) => {
+	try {
+		const refreshToken = req.signedCookies["refresh_token"];
+
+		await sessionService.delSession(refreshToken);
+
+		const csrfToken = await tokenService.generateCsrfToken();
+
+		return res.status(status("OK")).json({
+			success: true,
+			status: status("OK"),
+			message: "Signout successfull",
+			data: {
+				csrf_token: csrfToken,
+			},
+		});
+	} catch (err) {
+		logger.error("Error during signout:", err);
+
+		if (err instanceof errorAPI) {
+			return res.status(err.status).json({
+				success: false,
+				status: err.status,
+				message: err.message,
+				errors: [err.message],
+			});
+		}
+
+		return res.status(status("INTERNAL_SERVER_ERROR")).json({
+			success: false,
+			status: status("INTERNAL_SERVER_ERROR"),
+			message: "An error occurred during signout",
+			errors: ["An error occurred during signout"],
+		});
+	}
+};
+
+const refresh = async (req, res) => {
+	try {
+		const refreshToken = req.signedCookies["refresh_token"];
+
+		const currentSession = await sessionService.getOneSession(refreshToken);
+
+		if (!currentSession) {
+			return res.status(status("UNAUTHORIZED")).json({
+				success: false,
+				status: status("UNAUTHORIZED"),
+				message: "Session expired",
+				errors: ["Session expired"],
+			});
+		}
+
+		const payloadRefreshToken = await tokenService.verifyRefreshToken(
+			refreshToken
+		);
+
+		const accessToken = await tokenService.generateAccessToken(
+			payloadRefreshToken
+		);
+		const csrfToken = await tokenService.generateCsrfToken();
+
+		return res.status(status("OK")).json({
+			success: true,
+			status: status("OK"),
+			message: "Access extended",
+			data: {
+				token: {
+					access_token: accessToken,
+					csrf_token: csrfToken,
+				},
+			},
+		});
+	} catch (err) {
+		logger.error("Error during refresh:", err);
+
+		if (err instanceof errorAPI) {
+			return res.status(err.status).json({
+				success: false,
+				status: err.status,
+				message: err.message,
+				errors: [err.message],
+			});
+		}
+
+		return res.status(status("INTERNAL_SERVER_ERROR")).json({
+			success: false,
+			status: status("INTERNAL_SERVER_ERROR"),
+			message: "An error occurred during signout",
+			errors: ["An error occurred during signout"],
+		});
+	}
+};
+
+const me = async (req, res) => {
+	try {
+		const userId = req.user.id;
+
+		const user = await prisma.user.findFirst({
+			where: {
+				id: userId,
+			},
+			select: {
+				id: true,
+				username: true,
+				email: true,
+				role: true,
+			},
+			include: {
+				Profile: true,
+			},
+		});
+
+		const sessions = await sessionService.getAllSesssion(userId);
+
+		if (!user) {
+			return res.status(status("NOT_FOUND")).json({
+				success: false,
+				status: status("NOT_FOUND"),
+				message: "User not found",
+				errors: ["User not found"],
+			});
+		}
+
+		return res.status(status("OK")).json({
+			success: true,
+			status: status("OK"),
+			message: "User found",
+			data: {
+				user,
+				sessions,
+			},
+		});
+	} catch (err) {
+		logger.error("Error during find user data:", err);
+
+		if (err instanceof errorAPI) {
+			return res.status(err.status).json({
+				success: false,
+				status: err.status,
+				message: err.message,
+				errors: [err.message],
+			});
+		}
+
+		return res.status(status("INTERNAL_SERVER_ERROR")).json({
+			success: false,
+			status: status("INTERNAL_SERVER_ERROR"),
+			message: "An error occurred during get user data",
+			errors: ["An error occurred during get user data"],
+		});
+	}
+};
+
+const updateMe = async (req, res) => {
+	try {
+		const userId = req.user.id;
+		const { error, value } = sanitizeAndValidate(authValidation.updateMe, req);
+
+		if (error) {
+			return res.status(status("BAD_REQUEST")).json({
+				success: false,
+				status: status("BAD_REQUEST"),
+				message: "Validation error",
+				errors: error.details.map((detail) => detail.message),
+			});
+		}
+
+
+		const user = await prisma.profile.update({
+			where: {
+				user_id: userId,
+			},
+			data: {
+				...value.body,
+			},
+		});
+
+		logger.info(`${user.name} has been update the profile`);
+
+		return res.status(status("OK")).json({
+			success: true,
+			status: status("OK"),
+			message: "Update profile succesfull",
+			data: {
+				user,
+			},
+		});
+	} catch (err) {
+		logger.error("Error during update user profile:", err);
+
+		if (err instanceof errorAPI) {
+			return res.status(err.status).json({
+				success: false,
+				status: err.status,
+				message: err.message,
+				errors: [err.message],
+			});
+		}
+
+		return res.status(status("INTERNAL_SERVER_ERROR")).json({
+			success: false,
+			status: status("INTERNAL_SERVER_ERROR"),
+			message: "An error occurred during signup",
+			errors: ["An error occurred during signup"],
+		});
+	}
+};
+
+export default { signup, signin, signout, refresh, me, updateMe };
