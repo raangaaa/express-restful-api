@@ -37,6 +37,7 @@ model User {
   password        String    @db.VarChar(255)
   role            Roles     @default(User)
   email_verified  DateTime? @db.DateTime()
+  oauth_id        String    @db.LongText
 
   Profile         Profile?
   Token           Token[]   @relation(map: "Token_ibfk_1")

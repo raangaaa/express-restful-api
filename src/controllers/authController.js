@@ -1,5 +1,7 @@
 import status from "statuses";
+import dayjs from "dayjs";
 import bcrypt from "bcrypt";
+import passport from "passport";
 import prisma from "../../prisma/prisma.js";
 import sanitizeAndValidate from "../utils/validate.js";
 import authValidation from "../validations/authValidation.js";
@@ -7,7 +9,7 @@ import { logger } from "../../configs/logging.js";
 import tokenService from "../services/tokenService.js";
 import sessionService from "../services/sessionService.js";
 import publisher from "../events/eventEmitter.js";
-import dayjs from "dayjs";
+import env from "../../configs/env.js";
 
 const signup = async (req, res) => {
 	try {
@@ -129,7 +131,7 @@ const signin = async (req, res) => {
 			req.headers["user-agent"]
 		);
 
-		logger.info(`${user.name} has been signin to the system`);
+		logger.info(`${user.name} has been signin`);
 
 		res.cookie("refresh_token", refreshToken, {
 			httpOnly: true,
@@ -591,6 +593,142 @@ const passwordReset = async (req, res) => {
 	}
 };
 
+// OAuth Google
+
+const loginWithGoogle = passport.authenticate("google", {
+	scope: ["profile", "email"],
+});
+
+const googleCallback = async (req, res) => {
+	try {
+		const user = req.user;
+		const accessToken = await tokenService.generateAccessToken(user);
+		const refreshToken = await tokenService.generateRefreshToken(user);
+		const csrfToken = await tokenService.generateCsrfToken();
+
+		await sessionService.setSession(
+			user.id,
+			refreshToken,
+			req.ip,
+			req.headers["user-agent"]
+		);
+
+		logger.info(`${user.name} has been signin with google`);
+
+		res.cookie("refresh_token", refreshToken, {
+			httpOnly: true,
+			secure: true,
+			signed: true,
+			sameSite: "Lax",
+		});
+
+		return res.status(status("OK")).json({
+			success: true,
+			status: status("OK"),
+			message: "Signin successfull",
+			data: {
+				user: {
+					id: user.id,
+					name: user.name,
+					username: user.username,
+					email: user.email,
+				},
+				token: {
+					access_token: accessToken,
+					csrf_token: csrfToken,
+				},
+			},
+		});
+	} catch (err) {
+		logger.error("Error during signin with google:", err);
+
+		if (err instanceof errorAPI) {
+			return res.status(err.status).json({
+				success: false,
+				status: err.status,
+				message: err.message,
+				error: [err.message],
+			});
+		}
+
+		return res.status(status("INTERNAL_SERVER_ERROR")).json({
+			success: false,
+			status: status("INTERNAL_SERVER_ERROR"),
+			message: "An error occurred during signin.",
+			errors: ["An error occurred during signin."],
+		});
+	}
+};
+
+// OAuth Facebook
+
+const loginWithFacebook = passport.authenticate("facebook");
+
+const facebookCallback = async (req, res) => {
+	try {
+		const user = req.user;
+		const accessToken = await tokenService.generateAccessToken(user);
+		const refreshToken = await tokenService.generateRefreshToken(user);
+		const csrfToken = await tokenService.generateCsrfToken();
+
+		await sessionService.setSession(
+			user.id,
+			refreshToken,
+			req.ip,
+			req.headers["user-agent"]
+		);
+
+		logger.info(`${user.name} has been signin with facebook`);
+
+		res.cookie("refresh_token", refreshToken, {
+			httpOnly: true,
+			secure: true,
+			signed: true,
+			sameSite: "Lax",
+		});
+
+		return res.status(status("OK")).json({
+			success: true,
+			status: status("OK"),
+			message: "Signin successfull",
+			data: {
+				user: {
+					id: user.id,
+					name: user.name,
+					username: user.username,
+					email: user.email,
+				},
+				token: {
+					access_token: accessToken,
+					csrf_token: csrfToken,
+				},
+			},
+		});
+	} catch (err) {
+		logger.error("Error during signin with facebook:", err);
+
+		if (err instanceof errorAPI) {
+			return res.status(err.status).json({
+				success: false,
+				status: err.status,
+				message: err.message,
+				error: [err.message],
+			});
+		}
+
+		return res.status(status("INTERNAL_SERVER_ERROR")).json({
+			success: false,
+			status: status("INTERNAL_SERVER_ERROR"),
+			message: "An error occurred during signin.",
+			errors: ["An error occurred during signin."],
+		});
+	}
+};
+
+// Open ID authentication
+
+
+
 export default {
 	signup,
 	signin,
@@ -602,4 +740,8 @@ export default {
 	verifyEmail,
 	forgotPassword,
 	passwordReset,
+	loginWithGoogle,
+	googleCallback,
+	loginWithFacebook,
+	facebookCallback
 };

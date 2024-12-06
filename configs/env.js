@@ -37,6 +37,12 @@ const envValidate = Joi.object()
 		SMTP_PASSWORD: Joi.string().allow("").empty(""),
 		EMAIL_FROM: Joi.string().allow("").empty(""),
 
+		OAUTH_GOOGLE_CLIENT_ID: Joi.string().allow("").empty(""),
+		OAUTH_GOOGLE_CLIENT_SECRET: Joi.string().allow("").empty(""),
+			
+		OAUTH_FACEBOOK_APP_ID: Joi.string().allow("").empty(""),
+		OAUTH_FACEBOOK_APP_SECRET: Joi.string().allow("").empty(""),
+
 		VERIFY_EMAIL_TOKEN_EXPIRATION_MINUTES: Joi.number()
 			.allow("")
 			.empty("")
@@ -97,6 +103,12 @@ export default {
 	SMTP_USERNAME: env.SMTP_USERNAME,
 	SMTP_PASSWORD: env.SMTP_PASSWORD,
 	EMAIL_FROM: env.EMAIL_FROM,
+
+	OAUTH_GOOGLE_CLIENT_ID: env.OAUTH_GOOGLE_CLIENT_ID,
+	OAUTH_GOOGLE_CLIENT_SECRET: env.OAUTH_GOOGLE_CLIENT_SECRET,
+
+	OAUTH_FACEBOOK_APP_ID: env.OAUTH_FACEBOOK_APP_ID,
+	OAUTH_FACEBOOK_APP_SECRET: env.OAUTH_FACEBOOK_APP_SECRET,
 
 	VERIFY_EMAIL_TOKEN_EXPIRATION_MINUTES:
 		env.VERIFY_EMAIL_TOKEN_EXPIRATION_MINUTES,
