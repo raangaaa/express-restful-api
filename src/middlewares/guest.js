@@ -1,5 +1,5 @@
-import errorAPI from "@utils/errorAPI";
 import status from "statuses";
+import errorAPI from "../utils/errorAPI.js";
 
 const guest = (req, res, next) => {
 	if (req.headers["authorization"] || req.signedCookies["refresh_token"]) {

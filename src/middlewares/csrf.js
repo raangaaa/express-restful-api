@@ -1,5 +1,5 @@
-import tokenService from "@services/tokenService";
 import status from "statuses";
+import tokenService from "../services/tokenService.js";
 
 const csrfMiddleware = async (req, res, next) => {
 	const csrfHeader = req.headers["x-csrf-token"] || req.headers["X-CSRF-Token"];

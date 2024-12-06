@@ -1,6 +1,6 @@
 import winston from "winston";
 import morgan from "morgan";
-import env from "~/configs/env";
+import env from "./env.js";
 
 // Configuration for logging application 
 

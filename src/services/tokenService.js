@@ -1,11 +1,11 @@
-import prisma from "~/prisma/prisma";
-import jwt from "jsonwebtoken";
-import csrf from "csrf";
-import crypto from "crypto";
-import dayjs from "dayjs";
-import env from "~/configs/env";
-import errorAPI from "@utils/errorAPI";
 import status from "statuses";
+import dayjs from "dayjs";
+import csrf from "csrf";
+import jwt from "jsonwebtoken";
+import crypto from "crypto";
+import prisma from "../../prisma/prisma.js";
+import env from "../../configs/env.js";
+import errorAPI from "../utils/errorAPI.js";
 
 const csrfTokens = new csrf();
 
@@ -131,13 +131,21 @@ const verifyToken = async (token, type) => {
 		},
 	});
 
-	if (!dbToken) throw new errorAPI("Token not found", status("UNAUTHORIZED"));
-
+	if (!dbToken) {
+		throw new errorAPI("Token not found", status("UNAUTHORIZED"));
+	}
 	const expiresIn = dayjs(dbToken.expiresIn, "YYYY-MM-DD HH:mm:ss");
 
-	if (expiresIn.isBefore(dayjs()))
+	if (expiresIn.isBefore(dayjs())) {
+		await prisma.token.delete({
+			where: {
+				token,
+				token_type: type,
+			},
+		});
 		throw new errorAPI("Token expired", status("UNAUTHORIZED"));
-
+	}
+		
 	return dbToken;
 };
 

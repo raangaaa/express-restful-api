@@ -1,7 +1,7 @@
-import env from "~/configs/env";
-import { logger } from "~/configs/logging";
-import errorAPI from "@utils/errorAPI";
 import statuses from "statuses";
+import env from "../../configs/env.js";
+import { logger } from "../../configs/logging.js";
+import errorAPI from "../utils/errorAPIjs";
 
 export const notFound = (req, res, next) => {
 	return next(new errorAPI("Resources not found", statuses("NOT_FOUND")));

@@ -1,4 +1,4 @@
-import env from "~/configs/env"
+import env from "./env.js"
 
 // Configuration for cache system
 

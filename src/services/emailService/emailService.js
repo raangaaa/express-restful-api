@@ -26,7 +26,7 @@ const sendEmail = async (emailTo, subject, html) => {
 	}
 };
 
-const sendVerifyEmail = async (emailTo, verifyEmailToken) => {
+const sendEmailVerification = async (emailTo, verifyEmailToken) => {
 	try {
 		const subject = `${env.APP_NAME} - Verify your email address`;
 		const html = templateHTML.verifyEmail(
@@ -52,4 +52,4 @@ const sendPasswordResetEmail = async (emailTo, passwordResetToken) => {
 	}
 };
 
-export default { sendEmail, sendVerifyEmail, sendPasswordResetEmail };
+export default { sendEmail, sendEmailVerification, sendPasswordResetEmail };

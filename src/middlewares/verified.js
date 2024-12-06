@@ -1,8 +1,7 @@
-import tokenService from "@services/tokenService";
-import errorAPI from "@utils/errorAPI";
-import prisma from "~/prisma/prisma";
 import status from "statuses";
-import { logger } from "~/configs/logging";
+import tokenService from "../services/tokenService.js";
+import errorAPI from "../utils/errorAPI.js";
+import prisma from "../../prisma/prisma.js";
 
 const verified = async (req, res, next) => {
 	try {

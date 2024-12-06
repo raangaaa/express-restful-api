@@ -2,12 +2,11 @@ import fs from "fs";
 import path from "path";
 import redis from "redis";
 import Memcached from "memcached";
-import { cacheConfig, cacheDriver } from "~/configs/cache";
-import { logger } from "~/configs/logging";
+import { cacheConfig, cacheDriver } from "../../configs/cache.js";
 
 //     FILE     ---------------------------------------------------------
 
-const filePath = path.resolve(cacheConfig.file.storagePath);
+const filePath = path.resolve("../../" + cacheConfig.file.storagePath);
 
 if (!fs.existsSync(filePath)) {
 	fs.writeFileSync(filePath, JSON.stringify({}));

@@ -1,11 +1,13 @@
-import prisma from "~/prisma/prisma";
-import bcrypt from "bcrypt";
-import sanitizeAndValidate from "@utils/validate";
-import authValidation from "@validations/authValidation";
-import { logger } from "~/configs/logging";
-import tokenService from "@services/tokenService";
-import sessionService from "@services/sessionService";
 import status from "statuses";
+import bcrypt from "bcrypt";
+import prisma from "../../prisma/prisma.js";
+import sanitizeAndValidate from "../utils/validate.js";
+import authValidation from "../validations/authValidation.js";
+import { logger } from "../../configs/logging.js";
+import tokenService from "../services/tokenService.js";
+import sessionService from "../services/sessionService.js";
+import publisher from "../events/eventEmitter.js";
+import dayjs from "dayjs";
 
 const signup = async (req, res) => {
 	try {
@@ -33,6 +35,8 @@ const signup = async (req, res) => {
 				password: hashedPassword,
 			},
 		});
+
+		publisher.emit("userRegistered", user);
 
 		logger.info(`${user.name} has been registered to the system`);
 
@@ -340,7 +344,6 @@ const updateMe = async (req, res) => {
 			});
 		}
 
-
 		const user = await prisma.profile.update({
 			where: {
 				user_id: userId,
@@ -381,4 +384,222 @@ const updateMe = async (req, res) => {
 	}
 };
 
-export default { signup, signin, signout, refresh, me, updateMe };
+const sendVerificationEmail = async (req, res) => {
+	try {
+		const user = await prisma.user.findFirst({
+			where: {
+				id: req.user.id,
+			},
+		});
+
+		publisher.emit("userRegistered", user);
+
+		logger.info(`${user.username} resend verification email`);
+
+		return res.status(status("OK")).json({
+			success: true,
+			status: status("OK"),
+			message: "Email sended",
+		});
+	} catch (err) {
+		logger.error("Error during send verification user email:", err);
+
+		if (err instanceof errorAPI) {
+			return res.status(err.status).json({
+				success: false,
+				status: err.status,
+				message: err.message,
+				errors: [err.message],
+			});
+		}
+
+		return res.status(status("INTERNAL_SERVER_ERROR")).json({
+			success: false,
+			status: status("INTERNAL_SERVER_ERROR"),
+			message: "An error occurred during signup",
+			errors: ["An error occurred during signup"],
+		});
+	}
+};
+
+const verifyEmail = async (req, res) => {
+	try {
+		const { error, value } = sanitizeAndValidate(
+			authValidation.verifyEmail,
+			req
+		);
+
+		if (error) {
+			return res.status(status("BAD_REQUEST")).json({
+				success: false,
+				status: status("BAD_REQUEST"),
+				message: "Validation error",
+				errors: error.details.map((detail) => detail.message),
+			});
+		}
+
+		const tokenTicket = await tokenService.verifyToken(
+			value.params.token,
+			"VerifyEmail"
+		);
+
+		const user = await prisma.user.update({
+			where: {
+				id: tokenTicket.user_id,
+			},
+			data: {
+				email_verified: dayjs().format("YYYY-MM-DD HH:mm:ss"),
+			},
+		});
+
+		logger.info(`${user.username} has verify her email`);
+
+		return res.status(status("OK")).json({
+			success: true,
+			status: status("OK"),
+			message: "Email verified",
+		});
+	} catch (err) {
+		logger.error("Error during verify user email:", err);
+
+		if (err instanceof errorAPI) {
+			return res.status(err.status).json({
+				success: false,
+				status: err.status,
+				message: err.message,
+				errors: [err.message],
+			});
+		}
+
+		return res.status(status("INTERNAL_SERVER_ERROR")).json({
+			success: false,
+			status: status("INTERNAL_SERVER_ERROR"),
+			message: "An error occurred during signup",
+			errors: ["An error occurred during signup"],
+		});
+	}
+};
+
+const forgotPassword = async (req, res) => {
+	try {
+		const { error, value } = sanitizeAndValidate(
+			authValidation.forgotPassword,
+			req
+		);
+
+		if (error) {
+			return res.status(status("BAD_REQUEST")).json({
+				success: false,
+				status: status("BAD_REQUEST"),
+				message: "Validation error",
+				errors: error.details.map((detail) => detail.message),
+			});
+		}
+
+		const passwordResetPasswordToken =
+			await tokenService.generateResetPasswordToken();
+
+		publisher.emit(
+			"userForgotPassword",
+			value.body.email,
+			passwordResetPasswordToken
+		);
+
+		logger.info(`${value.body.email} has make request password reset`);
+
+		res.status(status("OK")).json({
+			success: true,
+			status: status("OK"),
+			message: "Email sended, check your email box",
+		});
+	} catch (err) {
+		logger.error("Error during send email user password reset:", err);
+
+		if (err instanceof errorAPI) {
+			return res.status(err.status).json({
+				success: false,
+				status: err.status,
+				message: err.message,
+				errors: [err.message],
+			});
+		}
+
+		return res.status(status("INTERNAL_SERVER_ERROR")).json({
+			success: false,
+			status: status("INTERNAL_SERVER_ERROR"),
+			message: "An error occurred during signup",
+			errors: ["An error occurred during signup"],
+		});
+	}
+};
+
+const passwordReset = async (req, res) => {
+	try {
+		const { error, value } = sanitizeAndValidate(
+			authValidation.resetPassword,
+			req
+		);
+
+		if (error) {
+			return res.status(status("BAD_REQUEST")).json({
+				success: false,
+				status: status("BAD_REQUEST"),
+				message: "Validation error",
+				errors: error.details.map((detail) => detail.message),
+			});
+		}
+
+		const tokenTicket = await tokenService.verifyToken(
+			value.params.token,
+			"PasswordReset"
+		);
+
+		const user = await prisma.user.update({
+			where: {
+				id: tokenTicket.user_id,
+			},
+			data: {
+				password: value.body.password,
+			},
+		});
+
+		logger.info(`${user.username} has reseting password`);
+
+		return res.status(status("OK")).json({
+			success: true,
+			status: status("OK"),
+			message: "Password has reseted",
+		});
+	} catch (err) {
+		logger.error("Error during reset user password:", err);
+
+		if (err instanceof errorAPI) {
+			return res.status(err.status).json({
+				success: false,
+				status: err.status,
+				message: err.message,
+				errors: [err.message],
+			});
+		}
+
+		return res.status(status("INTERNAL_SERVER_ERROR")).json({
+			success: false,
+			status: status("INTERNAL_SERVER_ERROR"),
+			message: "An error occurred during signup",
+			errors: ["An error occurred during signup"],
+		});
+	}
+};
+
+export default {
+	signup,
+	signin,
+	signout,
+	refresh,
+	me,
+	updateMe,
+	sendVerificationEmail,
+	verifyEmail,
+	forgotPassword,
+	passwordReset,
+};

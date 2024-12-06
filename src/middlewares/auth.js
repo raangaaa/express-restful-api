@@ -1,6 +1,6 @@
-import tokenService from "@services/tokenService";
-import errorAPI from "@utils/errorAPI";
 import status from "statuses";
+import tokenService from "../services/tokenService.js";
+import errorAPI from "../utils/errorAPI.js";
 
 const auth = async (req, res, next) => {
 	try {
