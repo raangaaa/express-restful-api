@@ -1,11 +1,33 @@
 import Joi from "joi";
+import userService from "../services/crud/userService";
 
 const signup = {
 	body: Joi.object()
 		.keys({
 			name: Joi.string().trim().max(150).required(),
-			username: Joi.string().trim().min(5).max(50).required(),
-			email: Joi.string().trim().email().required(),
+			username: Joi.string()
+				.trim()
+				.min(5)
+				.max(50)
+				.required()
+				.custom(async (value, helper) => {
+					const user = await userService.findOne({ username: value });
+					if (user) {
+						return helper.message("Username already exist");
+					}
+					return value;
+				}, "Unique Username Validation"),
+			email: Joi.string()
+				.trim()
+				.email()
+				.required()
+				.custom(async (value, helper) => {
+					const user = await userService.findOne({ email: value });
+					if (user) {
+						return helper.message("Email already exist");
+					}
+					return value;
+				}, "Unique Email Validation"),
 			password: Joi.string()
 				.trim()
 				.min(8)

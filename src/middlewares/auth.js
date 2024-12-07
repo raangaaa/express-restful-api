@@ -1,4 +1,3 @@
-import status from "statuses";
 import tokenService from "../services/tokenService.js";
 import errorAPI from "../utils/errorAPI.js";
 
@@ -8,32 +7,18 @@ const auth = async (req, res, next) => {
 			req.headers["authorization"] || req.headers["Authorization"];
 
 		if (!accessToken) {
-			return next(new errorAPI("Access token missing", status("UNAUTHORIZED")));
+			return next(new errorAPI("Access token missing", 401));
 		}
 
 		if (!accessToken.startsWith("Bearer ")) {
-			return next(
-				new errorAPI("Invalid access token format", status("UNAUTHORIZED"))
-			);
+			return next(new errorAPI("Invalid access token format", 401));
 		}
 
 		const token = accessToken.split(" ")[1];
 
 		const payloadAccessToken = await tokenService.verifyAccessToken(token);
-		const payloadRefreshToken = await tokenService.verifyRefreshToken(
-			req.signedCookies["refresh_token"]
-		);
 
-		if (payloadAccessToken.id !== payloadRefreshToken.id) {
-			return next(
-				new errorAPI(
-					"Session or Access token is invalid",
-					status("UNAUTHORIZED")
-				)
-			);
-		}
-
-		req.user = payloadAccessToken
+		req.user = payloadAccessToken;
 
 		next();
 	} catch (err) {

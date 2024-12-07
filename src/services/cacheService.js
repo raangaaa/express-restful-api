@@ -34,7 +34,7 @@ const fileCache = {
 
 //     REDIS     ---------------------------------------------------------
 
-const redisClient = redis.createClient({
+export const redisClient = redis.createClient({
 	username: cacheConfig.redis.username,
 	password: cacheConfig.redis.password,
 	host: cacheConfig.redis.host,

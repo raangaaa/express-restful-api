@@ -1,5 +1,5 @@
 import { EventEmitter } from "events";
 
-const publisher = new EventEmitter();
+const publishEvent = new EventEmitter();
 
-export default publisher;
+export default publishEvent;

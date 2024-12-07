@@ -1,4 +1,3 @@
-import status from "statuses";
 import tokenService from "../services/tokenService.js";
 import errorAPI from "../utils/errorAPI.js";
 import prisma from "../../prisma/prisma.js";
@@ -9,12 +8,12 @@ const verified = async (req, res, next) => {
 			req.headers["authorization"] || req.headers["Authorization"];
 
 		if (!accessToken) {
-			return next(new errorAPI("Access token missing", status("UNAUTHORIZED")));
+			return next(new errorAPI("Access token missing", 403));
 		}
 
 		if (!accessToken.startsWith("Bearer ")) {
 			return next(
-				new errorAPI("Invalid access token format", status("UNAUTHORIZED"))
+				new errorAPI("Invalid access token format", 403)
 			);
 		}
 
@@ -33,7 +32,7 @@ const verified = async (req, res, next) => {
 		});
 
 		if (!user || !user.email_verified) {
-			return next(new errorAPI("Email not verified", status("UNAUTHORIZED")));
+			return next(new errorAPI("Email not verified", 403));
 		}
 
 		next();

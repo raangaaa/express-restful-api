@@ -1,10 +1,9 @@
-import statuses from "statuses";
 import env from "../../configs/env.js";
 import { logger } from "../../configs/logging.js";
 import errorAPI from "../utils/errorAPIjs";
 
 export const notFound = (req, res, next) => {
-	return next(new errorAPI("Resources not found", statuses("NOT_FOUND")));
+	return next(new errorAPI("Resources not found", 404));
 };
 
 export const handler = (err, req, res, next) => {
@@ -13,16 +12,16 @@ export const handler = (err, req, res, next) => {
 	if (err instanceof errorAPI) {
 		return res.status(err.status).json({
 			success: false,
-			status: err.status,
+			statusCode: err.status,
 			message: err.message,
 			errors: [err.message],
 			...(env.NODE_ENV === "development" && { stack: err.stack }),
 		});
 	}
 
-	return res.status(statuses("INTERNAL_SERVER_ERROR")).json({
+	return res.status(500).json({
 		success: false,
-		status: statuses("INTERNAL_SERVER_ERROR"),
+		statusCode: 500,
 		message: "INTERNAL_SERVER_ERROR",
 		errors: ["INTERNAL_SERVER_ERROR"],
 		...(env.NODE_ENV === "development" && { stack: err.stack }),

@@ -1,4 +1,3 @@
-import status from "statuses";
 import tokenService from "../services/tokenService.js";
 
 const csrfMiddleware = async (req, res, next) => {
@@ -11,9 +10,9 @@ const csrfMiddleware = async (req, res, next) => {
 			return next();
 		}
 
-		return res.status(status("FORBIDDEN")).json({
+		return res.status(403).json({
 			sucess: false,
-			status: status("FORBIDDEN"),
+			statusCode: 403,
 			message: "CSRF token missing",
 			error: "CSRF token missing",
 		});
@@ -22,9 +21,9 @@ const csrfMiddleware = async (req, res, next) => {
 	if (["POST", "PUT", "DELETE"].includes(req.method)) {
 		const isValid = await tokenService.verifyCsrfToken(csrfHeader);
 		if (!isValid) {
-			return res.status(status("FORBIDDEN")).json({
+			return res.status(403).json({
 				success: false,
-				status: status("FORBIDDEN"),
+				statusCode: 403,
 				message: "CSRF token mismatch or invalid",
 				error: "CSRF token mismatch or invalid",
 			});

@@ -1,4 +1,3 @@
-import status from "statuses";
 import dayjs from "dayjs";
 import bcrypt from "bcrypt";
 import passport from "passport";
@@ -8,17 +7,16 @@ import authValidation from "../validations/authValidation.js";
 import { logger } from "../../configs/logging.js";
 import tokenService from "../services/tokenService.js";
 import sessionService from "../services/sessionService.js";
-import publisher from "../events/eventEmitter.js";
-import env from "../../configs/env.js";
+import publisEvent from "../events/eventEmitter.js";
 
 const signup = async (req, res) => {
 	try {
 		const { error, value } = sanitizeAndValidate(authValidation.signup, req);
 
 		if (error) {
-			return res.status(status("BAD_REQUEST")).json({
+			return res.status(400).json({
 				success: false,
-				status: status("BAD_REQUEST"),
+				statusCode: 400,
 				message: "Validation error",
 				errors: error.details.map((detail) => detail.message),
 			});
@@ -38,13 +36,13 @@ const signup = async (req, res) => {
 			},
 		});
 
-		publisher.emit("userRegistered", user);
+		publisEvent.emit("userRegistered", user);
 
 		logger.info(`${user.name} has been registered to the system`);
 
-		return res.status(status("CREATED")).json({
+		return res.status(201).json({
 			success: true,
-			status: status("CREATED"),
+			statusCode: 201,
 			message: "Signup succesfull",
 			data: {
 				id: user.id,
@@ -59,15 +57,15 @@ const signup = async (req, res) => {
 		if (err instanceof errorAPI) {
 			return res.status(err.status).json({
 				success: false,
-				status: err.status,
+				statusCode: err.status,
 				message: err.message,
 				errors: [err.message],
 			});
 		}
 
-		return res.status(status("INTERNAL_SERVER_ERROR")).json({
+		return res.status(500).json({
 			success: false,
-			status: status("INTERNAL_SERVER_ERROR"),
+			statusCode: 500,
 			message: "An error occurred during signup",
 			errors: ["An error occurred during signup"],
 		});
@@ -79,9 +77,9 @@ const signin = async (req, res) => {
 		const { error, value } = sanitizeAndValidate(authValidation.signin, req);
 
 		if (error) {
-			return res.status(status("BAD_REQUEST")).json({
+			return res.status(400).json({
 				success: false,
-				status: status("BAD_REQUEST"),
+				statusCode: 400,
 				message: "Validation error",
 				errors: error.details.map((detail) => detail.message),
 			});
@@ -94,11 +92,20 @@ const signin = async (req, res) => {
 		});
 
 		if (!user) {
-			return res.status(status("UNAUTHORIZED")).json({
+			return res.status(401).json({
 				success: false,
-				status: status("UNAUTHORIZED"),
+				statusCode: 401,
 				message: "Sign in failed",
 				errors: ["Sign in failed"],
+			});
+		}
+
+		if (user.google_id !== null || user.facebook_id !== null) {
+			return res.status(401).json({
+				success: false,
+				statusCode: 401,
+				message: "Sign in failed, you was sign in with other action",
+				errors: ["Sign in failed, you was sign in with other action"],
 			});
 		}
 
@@ -108,9 +115,9 @@ const signin = async (req, res) => {
 		);
 
 		if (!isPasswordValid) {
-			return res.status(status("UNAUTHORIZED")).json({
+			return res.status(401).json({
 				success: false,
-				status: status("UNAUTHORIZED"),
+				statusCode: 401,
 				message: "Sign in failed",
 				errors: ["Sign in failed"],
 			});
@@ -137,12 +144,12 @@ const signin = async (req, res) => {
 			httpOnly: true,
 			secure: true,
 			signed: true,
-			sameSite: "Strict",
+			sameSite: "Lax",
 		});
 
-		return res.status(status("OK")).json({
+		return res.status(200).json({
 			success: true,
-			status: status("OK"),
+			statusCode: 200,
 			message: "Signin successfull",
 			data: {
 				user: {
@@ -163,16 +170,16 @@ const signin = async (req, res) => {
 		if (err instanceof errorAPI) {
 			return res.status(err.status).json({
 				success: false,
-				status: err.status,
+				statusCode: err.status,
 				message: err.message,
 				error: [err.message],
 			});
 		}
 
 		logger.error("Error during signin:", err);
-		return res.status(status("INTERNAL_SERVER_ERROR")).json({
+		return res.status(500).json({
 			success: false,
-			status: status("INTERNAL_SERVER_ERROR"),
+			statusCode: 500,
 			message: "An error occurred during signin.",
 			errors: ["An error occurred during signin."],
 		});
@@ -187,9 +194,9 @@ const signout = async (req, res) => {
 
 		const csrfToken = await tokenService.generateCsrfToken();
 
-		return res.status(status("OK")).json({
+		return res.status(200).json({
 			success: true,
-			status: status("OK"),
+			statusCode: 200,
 			message: "Signout successfull",
 			data: {
 				csrf_token: csrfToken,
@@ -201,15 +208,15 @@ const signout = async (req, res) => {
 		if (err instanceof errorAPI) {
 			return res.status(err.status).json({
 				success: false,
-				status: err.status,
+				statusCode: err.status,
 				message: err.message,
 				errors: [err.message],
 			});
 		}
 
-		return res.status(status("INTERNAL_SERVER_ERROR")).json({
+		return res.status(500).json({
 			success: false,
-			status: status("INTERNAL_SERVER_ERROR"),
+			statusCode: 500,
 			message: "An error occurred during signout",
 			errors: ["An error occurred during signout"],
 		});
@@ -223,9 +230,9 @@ const refresh = async (req, res) => {
 		const currentSession = await sessionService.getOneSession(refreshToken);
 
 		if (!currentSession) {
-			return res.status(status("UNAUTHORIZED")).json({
+			return res.status(401).json({
 				success: false,
-				status: status("UNAUTHORIZED"),
+				statusCode: 401,
 				message: "Session expired",
 				errors: ["Session expired"],
 			});
@@ -240,9 +247,9 @@ const refresh = async (req, res) => {
 		);
 		const csrfToken = await tokenService.generateCsrfToken();
 
-		return res.status(status("OK")).json({
+		return res.status(200).json({
 			success: true,
-			status: status("OK"),
+			statusCode: 200,
 			message: "Access extended",
 			data: {
 				token: {
@@ -257,15 +264,15 @@ const refresh = async (req, res) => {
 		if (err instanceof errorAPI) {
 			return res.status(err.status).json({
 				success: false,
-				status: err.status,
+				statusCode: err.status,
 				message: err.message,
 				errors: [err.message],
 			});
 		}
 
-		return res.status(status("INTERNAL_SERVER_ERROR")).json({
+		return res.status(500).json({
 			success: false,
-			status: status("INTERNAL_SERVER_ERROR"),
+			statusCode: 500,
 			message: "An error occurred during signout",
 			errors: ["An error occurred during signout"],
 		});
@@ -294,17 +301,17 @@ const me = async (req, res) => {
 		const sessions = await sessionService.getAllSesssion(userId);
 
 		if (!user) {
-			return res.status(status("NOT_FOUND")).json({
+			return res.status(404).json({
 				success: false,
-				status: status("NOT_FOUND"),
+				statusCode: 404,
 				message: "User not found",
 				errors: ["User not found"],
 			});
 		}
 
-		return res.status(status("OK")).json({
+		return res.status(200).json({
 			success: true,
-			status: status("OK"),
+			statusCode: 200,
 			message: "User found",
 			data: {
 				user,
@@ -317,15 +324,15 @@ const me = async (req, res) => {
 		if (err instanceof errorAPI) {
 			return res.status(err.status).json({
 				success: false,
-				status: err.status,
+				statusCode: err.status,
 				message: err.message,
 				errors: [err.message],
 			});
 		}
 
-		return res.status(status("INTERNAL_SERVER_ERROR")).json({
+		return res.status(500).json({
 			success: false,
-			status: status("INTERNAL_SERVER_ERROR"),
+			statusCode: 500,
 			message: "An error occurred during get user data",
 			errors: ["An error occurred during get user data"],
 		});
@@ -338,9 +345,9 @@ const updateMe = async (req, res) => {
 		const { error, value } = sanitizeAndValidate(authValidation.updateMe, req);
 
 		if (error) {
-			return res.status(status("BAD_REQUEST")).json({
+			return res.status(400).json({
 				success: false,
-				status: status("BAD_REQUEST"),
+				statusCode: 400,
 				message: "Validation error",
 				errors: error.details.map((detail) => detail.message),
 			});
@@ -357,9 +364,9 @@ const updateMe = async (req, res) => {
 
 		logger.info(`${user.name} has been update the profile`);
 
-		return res.status(status("OK")).json({
+		return res.status(200).json({
 			success: true,
-			status: status("OK"),
+			statusCode: 200,
 			message: "Update profile succesfull",
 			data: {
 				user,
@@ -371,15 +378,15 @@ const updateMe = async (req, res) => {
 		if (err instanceof errorAPI) {
 			return res.status(err.status).json({
 				success: false,
-				status: err.status,
+				statusCode: err.status,
 				message: err.message,
 				errors: [err.message],
 			});
 		}
 
-		return res.status(status("INTERNAL_SERVER_ERROR")).json({
+		return res.status(500).json({
 			success: false,
-			status: status("INTERNAL_SERVER_ERROR"),
+			statusCode: 500,
 			message: "An error occurred during signup",
 			errors: ["An error occurred during signup"],
 		});
@@ -394,14 +401,14 @@ const sendVerificationEmail = async (req, res) => {
 			},
 		});
 
-		publisher.emit("userRegistered", user);
+		publisEvent.emit("userRegistered", user);
 
 		logger.info(`${user.username} resend verification email`);
 
-		return res.status(status("OK")).json({
+		return res.status(202).json({
 			success: true,
-			status: status("OK"),
-			message: "Email sended",
+			statusCode: 202,
+			message: "Verification email request accepted",
 		});
 	} catch (err) {
 		logger.error("Error during send verification user email:", err);
@@ -409,15 +416,15 @@ const sendVerificationEmail = async (req, res) => {
 		if (err instanceof errorAPI) {
 			return res.status(err.status).json({
 				success: false,
-				status: err.status,
+				statusCode: err.status,
 				message: err.message,
 				errors: [err.message],
 			});
 		}
 
-		return res.status(status("INTERNAL_SERVER_ERROR")).json({
+		return res.status(500).json({
 			success: false,
-			status: status("INTERNAL_SERVER_ERROR"),
+			statusCode: 500,
 			message: "An error occurred during signup",
 			errors: ["An error occurred during signup"],
 		});
@@ -432,9 +439,9 @@ const verifyEmail = async (req, res) => {
 		);
 
 		if (error) {
-			return res.status(status("BAD_REQUEST")).json({
+			return res.status(400).json({
 				success: false,
-				status: status("BAD_REQUEST"),
+				statusCode: 400,
 				message: "Validation error",
 				errors: error.details.map((detail) => detail.message),
 			});
@@ -456,9 +463,9 @@ const verifyEmail = async (req, res) => {
 
 		logger.info(`${user.username} has verify her email`);
 
-		return res.status(status("OK")).json({
+		return res.status(200).json({
 			success: true,
-			status: status("OK"),
+			statusCode: 200,
 			message: "Email verified",
 		});
 	} catch (err) {
@@ -467,15 +474,15 @@ const verifyEmail = async (req, res) => {
 		if (err instanceof errorAPI) {
 			return res.status(err.status).json({
 				success: false,
-				status: err.status,
+				statusCode: err.status,
 				message: err.message,
 				errors: [err.message],
 			});
 		}
 
-		return res.status(status("INTERNAL_SERVER_ERROR")).json({
+		return res.status(500).json({
 			success: false,
-			status: status("INTERNAL_SERVER_ERROR"),
+			statusCode: 500,
 			message: "An error occurred during signup",
 			errors: ["An error occurred during signup"],
 		});
@@ -490,9 +497,9 @@ const forgotPassword = async (req, res) => {
 		);
 
 		if (error) {
-			return res.status(status("BAD_REQUEST")).json({
+			return res.status(400).json({
 				success: false,
-				status: status("BAD_REQUEST"),
+				statusCode: 400,
 				message: "Validation error",
 				errors: error.details.map((detail) => detail.message),
 			});
@@ -501,7 +508,7 @@ const forgotPassword = async (req, res) => {
 		const passwordResetPasswordToken =
 			await tokenService.generateResetPasswordToken();
 
-		publisher.emit(
+		publisEvent.emit(
 			"userForgotPassword",
 			value.body.email,
 			passwordResetPasswordToken
@@ -509,10 +516,10 @@ const forgotPassword = async (req, res) => {
 
 		logger.info(`${value.body.email} has make request password reset`);
 
-		res.status(status("OK")).json({
+		return res.status(202).json({
 			success: true,
-			status: status("OK"),
-			message: "Email sended, check your email box",
+			statusCode: 202,
+			message: "Password reset request accepted",
 		});
 	} catch (err) {
 		logger.error("Error during send email user password reset:", err);
@@ -520,15 +527,15 @@ const forgotPassword = async (req, res) => {
 		if (err instanceof errorAPI) {
 			return res.status(err.status).json({
 				success: false,
-				status: err.status,
+				statusCode: err.status,
 				message: err.message,
 				errors: [err.message],
 			});
 		}
 
-		return res.status(status("INTERNAL_SERVER_ERROR")).json({
+		return res.status(500).json({
 			success: false,
-			status: status("INTERNAL_SERVER_ERROR"),
+			statusCode: 500,
 			message: "An error occurred during signup",
 			errors: ["An error occurred during signup"],
 		});
@@ -543,9 +550,9 @@ const passwordReset = async (req, res) => {
 		);
 
 		if (error) {
-			return res.status(status("BAD_REQUEST")).json({
+			return res.status(400).json({
 				success: false,
-				status: status("BAD_REQUEST"),
+				statusCode: 400,
 				message: "Validation error",
 				errors: error.details.map((detail) => detail.message),
 			});
@@ -567,9 +574,9 @@ const passwordReset = async (req, res) => {
 
 		logger.info(`${user.username} has reseting password`);
 
-		return res.status(status("OK")).json({
+		return res.status(200).json({
 			success: true,
-			status: status("OK"),
+			statusCode: 200,
 			message: "Password has reseted",
 		});
 	} catch (err) {
@@ -578,15 +585,15 @@ const passwordReset = async (req, res) => {
 		if (err instanceof errorAPI) {
 			return res.status(err.status).json({
 				success: false,
-				status: err.status,
+				statusCode: err.status,
 				message: err.message,
 				errors: [err.message],
 			});
 		}
 
-		return res.status(status("INTERNAL_SERVER_ERROR")).json({
+		return res.status(500).json({
 			success: false,
-			status: status("INTERNAL_SERVER_ERROR"),
+			statusCode: 500,
 			message: "An error occurred during signup",
 			errors: ["An error occurred during signup"],
 		});
@@ -622,9 +629,9 @@ const googleCallback = async (req, res) => {
 			sameSite: "Lax",
 		});
 
-		return res.status(status("OK")).json({
+		return res.status(200).json({
 			success: true,
-			status: status("OK"),
+			statusCode: 200,
 			message: "Signin successfull",
 			data: {
 				user: {
@@ -645,15 +652,15 @@ const googleCallback = async (req, res) => {
 		if (err instanceof errorAPI) {
 			return res.status(err.status).json({
 				success: false,
-				status: err.status,
+				statusCode: err.status,
 				message: err.message,
 				error: [err.message],
 			});
 		}
 
-		return res.status(status("INTERNAL_SERVER_ERROR")).json({
+		return res.status(500).json({
 			success: false,
-			status: status("INTERNAL_SERVER_ERROR"),
+			statusCode: 500,
 			message: "An error occurred during signin.",
 			errors: ["An error occurred during signin."],
 		});
@@ -687,9 +694,9 @@ const facebookCallback = async (req, res) => {
 			sameSite: "Lax",
 		});
 
-		return res.status(status("OK")).json({
+		return res.status(200).json({
 			success: true,
-			status: status("OK"),
+			statusCode: 200,
 			message: "Signin successfull",
 			data: {
 				user: {
@@ -710,24 +717,22 @@ const facebookCallback = async (req, res) => {
 		if (err instanceof errorAPI) {
 			return res.status(err.status).json({
 				success: false,
-				status: err.status,
+				statusCode: err.status,
 				message: err.message,
 				error: [err.message],
 			});
 		}
 
-		return res.status(status("INTERNAL_SERVER_ERROR")).json({
+		return res.status(500).json({
 			success: false,
-			status: status("INTERNAL_SERVER_ERROR"),
+			statusCode: 500,
 			message: "An error occurred during signin.",
 			errors: ["An error occurred during signin."],
 		});
 	}
 };
 
-// Open ID authentication
-
-
+// Open ID Connet authentication (centralized)
 
 export default {
 	signup,
@@ -743,5 +748,5 @@ export default {
 	loginWithGoogle,
 	googleCallback,
 	loginWithFacebook,
-	facebookCallback
+	facebookCallback,
 };

@@ -1,4 +1,3 @@
-import status from "statuses";
 import dayjs from "dayjs";
 import csrf from "csrf";
 import jwt from "jsonwebtoken";
@@ -34,9 +33,9 @@ const verifyAccessToken = async (accessToken) => {
 		});
 	} catch (err) {
 		if (err.name === "TokenExpiredError") {
-			throw new errorAPI("Access expired", status("UNAUTHORIZED"));
+			throw new errorAPI("Access expired", 401);
 		} else if (err.name === "JsonWebTokenError") {
-			throw new errorAPI("Access is invalid", status("UNAUTHORIZED"));
+			throw new errorAPI("Access is invalid", 401);
 		}
 
 		throw err;
@@ -60,9 +59,9 @@ const verifyRefreshToken = async (refreshToken) => {
 		});
 	} catch (err) {
 		if (err.name === "TokenExpiredError") {
-			throw new errorAPI("Session expired", status("UNAUTHORIZED"));
+			throw new errorAPI("Session expired", 401);
 		} else if (err.name === "JsonWebTokenError") {
-			throw new errorAPI("Session is invalid", status("UNAUTHORIZED"));
+			throw new errorAPI("Session is invalid", 401);
 		}
 
 		throw err;
@@ -132,7 +131,7 @@ const verifyToken = async (token, type) => {
 	});
 
 	if (!dbToken) {
-		throw new errorAPI("Token not found", status("UNAUTHORIZED"));
+		throw new errorAPI("Token not found", 401);
 	}
 	const expiresIn = dayjs(dbToken.expiresIn, "YYYY-MM-DD HH:mm:ss");
 
@@ -143,7 +142,7 @@ const verifyToken = async (token, type) => {
 				token_type: type,
 			},
 		});
-		throw new errorAPI("Token expired", status("UNAUTHORIZED"));
+		throw new errorAPI("Token expired", 401);
 	}
 		
 	return dbToken;

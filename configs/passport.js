@@ -1,10 +1,11 @@
 import passport from "passport";
 import { Steategy as GoogleStrategy } from "passport-google-oauth20";
 import { Steategy as FacebookStrategy } from "passport-facebook";
-import env from "./env";
-import prisma from "../prisma/prisma";
-import tokenService from "../src/services/tokenService";
 import dayjs from "dayjs";
+import env from "./env.js";
+import prisma from "../prisma/prisma.js";
+import tokenService from "../src/services/tokenService.js";
+import userService from "../src/services/crud/userService.js";
 
 // Google
 passport.use(
@@ -16,32 +17,29 @@ passport.use(
 		},
 		async (accessToken, refreshToken, profile, done) => {
 			try {
-				const existingUser = await prisma.user.findUnique({
-					where: {
+				const { existingUser, newUser } = await userService.findOrCreate(
+					{
 						email: profile.emails[0].value,
-						oauth_id: null,
+						google_id: null,
 					},
-				});
+					{
+						email: profile.emails[0].value,
+						password: await tokenService.generateRandomToken(50),
+						username: `${profile.displayName.replace(" ", "_").toLowerCase()}_${
+							profile.emails[0].value.split("@")[0]
+						}`,
+						email_verified: dayjs().format("YYYY-MM-DD HH:mm:ss"),
+						Profile: {
+							create: {
+								name: profile.displayName,
+							},
+						},
+					}
+				);
 
 				if (existingUser) {
 					return done(null, existingUser);
 				} else {
-					const newUser = await prisma.user.create({
-						data: {
-							email: profile.emails[0].value,
-							password: await tokenService.generateRandomToken(50),
-							username: `${profile.displayName
-								.replace(" ", "_")
-								.toLowerCase()}_${profile.emails[0].value.split("@")[0]}`,
-							email_verified: dayjs().format("YYYY-MM-DD HH:mm:ss"),
-							Profile: {
-								create: {
-									name: profile.displayName,
-								},
-							},
-						},
-					});
-
 					return done(null, newUser);
 				}
 			} catch (error) {
@@ -62,32 +60,29 @@ passport.use(
 		},
 		async (accessToken, refreshToken, profile, done) => {
 			try {
-				const existingUser = await prisma.user.findUnique({
-					where: {
+				const { existingUser, newUser } = await userService.findOrCreate(
+					{
 						email: profile.emails[0].value,
-						oauth_id: null,
+						facebook_id: null,
 					},
-				});
+					{
+						email: profile.emails[0].value,
+						password: await tokenService.generateRandomToken(50),
+						username: `${profile.displayName.replace(" ", "_").toLowerCase()}_${
+							profile.emails[0].value.split("@")[0]
+						}`,
+						email_verified: dayjs().format("YYYY-MM-DD HH:mm:ss"),
+						Profile: {
+							create: {
+								name: profile.displayName,
+							},
+						},
+					}
+				);
 
 				if (existingUser) {
 					return done(null, existingUser);
 				} else {
-					const newUser = await prisma.user.create({
-						data: {
-							email: profile.emails[0].value,
-							password: await tokenService.generateRandomToken(50),
-							username: `${profile.displayName
-								.replace(" ", "_")
-								.toLowerCase()}_${profile.emails[0].value.split("@")[0]}`,
-							email_verified: dayjs().format("YYYY-MM-DD HH:mm:ss"),
-							Profile: {
-								create: {
-									name: profile.displayName,
-								},
-							},
-						},
-					});
-
 					return done(null, newUser);
 				}
 			} catch (error) {
