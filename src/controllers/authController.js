@@ -8,6 +8,7 @@ import { logger } from "../../configs/logging.js";
 import tokenService from "../services/tokenService.js";
 import sessionService from "../services/sessionService.js";
 import publisEvent from "../events/eventEmitter.js";
+import startWorker from "../tasks/worker.js";
 
 const signup = async (req, res) => {
 	try {
@@ -36,7 +37,18 @@ const signup = async (req, res) => {
 			},
 		});
 
-		publisEvent.emit("userRegistered", user);
+		const verificationEmailToken = await tokenService.generateVerifyEmailToken(
+			user
+		);
+
+		startWorker(
+			{
+				typeEmail: "verificationEmail",
+				emailTo: user.email,
+				verificationEmailToken,
+			},
+			"emailSendWorker.js"
+		);
 
 		logger.info(`${user.name} has been registered to the system`);
 
@@ -401,7 +413,18 @@ const sendVerificationEmail = async (req, res) => {
 			},
 		});
 
-		publisEvent.emit("userRegistered", user);
+		const verificationEmailToken = await tokenService.generateVerifyEmailToken(
+			user
+		);
+
+		startWorker(
+			{
+				typeEmail: "verificationEmail",
+				emailTo: user.email,
+				verificationEmailToken,
+			},
+			"emailSendWorker.js"
+		);
 
 		logger.info(`${user.username} resend verification email`);
 
@@ -505,13 +528,16 @@ const forgotPassword = async (req, res) => {
 			});
 		}
 
-		const passwordResetPasswordToken =
-			await tokenService.generateResetPasswordToken();
+		const passwordResetToken =
+			await tokenService.generateResetPasswordToken(value.body.email);
 
-		publisEvent.emit(
-			"userForgotPassword",
-			value.body.email,
-			passwordResetPasswordToken
+		startWorker(
+			{
+				typeEmail: "verificationEmail",
+				emailTo: value.body.email,
+				passwordResetToken,
+			},
+			"emailSendWorker.js"
 		);
 
 		logger.info(`${value.body.email} has make request password reset`);

@@ -16,6 +16,7 @@ import csrfMiddleware from "./src/middlewares/csrf.js";
 import rateLimiter from "./src/middlewares/rateLimiter.js";
 import prisma from "./prisma/prisma.js";
 import { redisClient } from "./src/services/cacheService.js";
+import "./src/tasks/schedule.js"
 
 const app = express();
 

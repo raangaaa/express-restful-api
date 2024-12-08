@@ -13,29 +13,27 @@ const transport = nodemailer.createTransport({
 
 const sendEmail = async (emailTo, subject, html) => {
 	try {
-		const info = await transport.sendMail({
+		return await transport.sendMail({
 			from: `${env.APP_NAME}  <${env.EMAIL_FROM}>`,
 			to: emailTo,
 			subject,
 			html,
 		});
-
-		console.log("Email send to: %s", emailTo);
-	} catch (error) {
-		console.error("Failed send email: ", error);
+	} catch (err) {
+		return err;
 	}
 };
 
-const sendEmailVerification = async (emailTo, verifyEmailToken) => {
+const sendEmailVerification = async (emailTo, verificationEmailToken) => {
 	try {
 		const subject = `${env.APP_NAME} - Verify your email address`;
 		const html = templateHTML.verifyEmail(
-			`${env.FRONTEND_URL}/${verifyEmailToken}`
+			`${env.FRONTEND_URL}/${verificationEmailToken}`
 		);
 
-		await sendEmail(emailTo, subject, html);
-	} catch (error) {
-		console.error("Failed send email: ", error);
+		return await sendEmail(emailTo, subject, html);
+	} catch (err) {
+		return err; 
 	}
 };
 
@@ -46,9 +44,9 @@ const sendPasswordResetEmail = async (emailTo, passwordResetToken) => {
 			`${env.FRONTEND_URL}/${passwordResetToken}`
 		);
 
-		await sendEmail(emailTo, subject, html);
-	} catch (error) {
-		console.error("Failed send email: ", error);
+		return await sendEmail(emailTo, subject, html);
+	} catch (err) {
+		return err;
 	}
 };
 

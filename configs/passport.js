@@ -3,7 +3,6 @@ import { Steategy as GoogleStrategy } from "passport-google-oauth20";
 import { Steategy as FacebookStrategy } from "passport-facebook";
 import dayjs from "dayjs";
 import env from "./env.js";
-import prisma from "../prisma/prisma.js";
 import tokenService from "../src/services/tokenService.js";
 import userService from "../src/services/crud/userService.js";
 
@@ -17,25 +16,20 @@ passport.use(
 		},
 		async (accessToken, refreshToken, profile, done) => {
 			try {
-				const { existingUser, newUser } = await userService.findOrCreate(
-					{
-						email: profile.emails[0].value,
-						google_id: null,
-					},
-					{
-						email: profile.emails[0].value,
-						password: await tokenService.generateRandomToken(50),
-						username: `${profile.displayName.replace(" ", "_").toLowerCase()}_${
-							profile.emails[0].value.split("@")[0]
-						}`,
-						email_verified: dayjs().format("YYYY-MM-DD HH:mm:ss"),
-						Profile: {
-							create: {
-								name: profile.displayName,
-							},
+				const { existingUser, newUser } = await userService.findOrCreate({
+					username: `user${await tokenService.generateRandomToken(20)}${
+						profile.emails[0].value.split("@")[0]
+					}`,
+					password: await tokenService.generateRandomToken(50),
+					email: profile.emails[0].value,
+					email_verified: dayjs().format("YYYY-MM-DD HH:mm:ss"),
+					google_id: profile.id,
+					Profile: {
+						create: {
+							name: profile.displayName,
 						},
-					}
-				);
+					},
+				});
 
 				if (existingUser) {
 					return done(null, existingUser);
@@ -60,25 +54,20 @@ passport.use(
 		},
 		async (accessToken, refreshToken, profile, done) => {
 			try {
-				const { existingUser, newUser } = await userService.findOrCreate(
-					{
-						email: profile.emails[0].value,
-						facebook_id: null,
-					},
-					{
-						email: profile.emails[0].value,
-						password: await tokenService.generateRandomToken(50),
-						username: `${profile.displayName.replace(" ", "_").toLowerCase()}_${
-							profile.emails[0].value.split("@")[0]
-						}`,
-						email_verified: dayjs().format("YYYY-MM-DD HH:mm:ss"),
-						Profile: {
-							create: {
-								name: profile.displayName,
-							},
+				const { existingUser, newUser } = await userService.findOrCreate({
+					username: `user${await tokenService.generateRandomToken(20)}${
+						profile.emails[0].value.split("@")[0]
+					}`,
+					password: await tokenService.generateRandomToken(50),
+					email: profile.emails[0].value,
+					email_verified: dayjs().format("YYYY-MM-DD HH:mm:ss"),
+					facebook_id: profile.id,
+					Profile: {
+						create: {
+							name: profile.displayName,
 						},
-					}
-				);
+					},
+				});
 
 				if (existingUser) {
 					return done(null, existingUser);

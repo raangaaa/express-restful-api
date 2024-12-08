@@ -59,9 +59,9 @@ const paginate = async (page = 1, filter = {}, orderBy = { id: "asc" }) => {
 	};
 };
 
-const findOrCreate = async (where, data) => {
+const findOrCreate = async (data) => {
 	return await prisma.$transaction(async (prisma) => {
-		const existingUser = await prisma.user.findFirst({ where });
+		const existingUser = await prisma.user.findFirst({ where: data.email });
 		if (!existingUser) {
 			const newUser = await prisma.user.create({
 				data,

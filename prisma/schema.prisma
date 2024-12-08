@@ -37,11 +37,15 @@ model User {
   password        String    @db.VarChar(255)
   role            Roles     @default(User)
   email_verified  DateTime? @db.DateTime()
-  oauth_id        String    @db.LongText
+  google_id       String?   @db.LongText
+  facebook_id     String?   @db.LongText
+  created_at      DateTime  @db.Timestamp() @default(now())
+  update_at       DateTime  @db.Timestamp() @updatedAt()
+  delete_at       DateTime  @db.Timestamp()
+  suspend_at      DateTime  @db.DateTime()
 
   Profile         Profile?
   Token           Token[]   @relation(map: "Token_ibfk_1")
-  Session         Session[] @relation(map: "Session_ibfk_1")
 }
 
 model Profile {
@@ -52,6 +56,7 @@ model Profile {
   pronouns  Pronouns?
   gender    Gender?
   user_id   BigInt    @unique
+  update_at DateTime  @db.Timestamp() @updatedAt()
 
   User      User      @relation(fields: [user_id], references: [id], onUpdate: Restrict, map: "Profile_ibfk_1")
 }
@@ -63,16 +68,4 @@ model Token {
   token_type  TokenType
 
   User        User      @relation(fields: [user_id], references: [id], onUpdate: Restrict, map: "Token_ibfk_1")
-}
-
-model Session {
-  id            BigInt    @id @default(autoincrement())
-  user_id       BigInt    
-  refresh_token String    @db.VarChar(255) @unique
-  expiresIn     DateTime  @db.DateTime()
-  user_agent    String    @db.Text
-  ip_address    String    @db.VarChar(45)
-  login_time    DateTime  @db.DateTime() @default(now())
-  
-  User          User      @relation(fields: [user_id], references: [id], onUpdate: Restrict, map: "Session_ibfk_1")
 }
