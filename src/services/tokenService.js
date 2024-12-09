@@ -9,155 +9,147 @@ import errorAPI from "../utils/errorAPI.js";
 const csrfTokens = new csrf();
 
 const hashToken = async (token) => {
-	return crypto.createHash("SHA256").update(token).digest("hex");
+    return crypto.createHash("SHA256").update(token).digest("hex");
 };
 
 const generateRandomToken = async (length = 64) => {
-	return crypto.randomBytes(length).toString("hex");
+    return crypto.randomBytes(length).toString("hex");
 };
 
 const generateAccessToken = async (dataUser) => {
-	const expiresIn = dayjs()
-		.add(env.ACCESS_TOKEN_EXPIRATION_MINUTES, "minute")
-		.unix();
-	return jwt.sign(dataUser, env.ACCESS_TOKEN_SECRET_PRIVATE, {
-		algorithm: "RS256",
-		expiresIn,
-	});
+    const expiresIn = dayjs().add(env.ACCESS_TOKEN_EXPIRATION_MINUTES, "minute").unix();
+    return jwt.sign(dataUser, env.ACCESS_TOKEN_SECRET_PRIVATE, {
+        algorithm: "RS256",
+        expiresIn
+    });
 };
 
 const verifyAccessToken = async (accessToken) => {
-	try {
-		return jwt.verify(accessToken, env.ACCESS_TOKEN_SECRET_PUBLIC, {
-			algorithms: ["RS256"],
-		});
-	} catch (err) {
-		if (err.name === "TokenExpiredError") {
-			throw new errorAPI("Access expired", 401);
-		} else if (err.name === "JsonWebTokenError") {
-			throw new errorAPI("Access is invalid", 401);
-		}
+    try {
+        return jwt.verify(accessToken, env.ACCESS_TOKEN_SECRET_PUBLIC, {
+            algorithms: ["RS256"]
+        });
+    } catch (err) {
+        if (err.name === "TokenExpiredError") {
+            throw new errorAPI("Access expired", 401);
+        } else if (err.name === "JsonWebTokenError") {
+            throw new errorAPI("Access is invalid", 401);
+        }
 
-		throw err;
-	}
+        throw err;
+    }
 };
 
 const generateRefreshToken = async (dataUser) => {
-	const expiresIn = dayjs()
-		.add(env.REFRESH_TOKEN_EXPIRATION_DAYS, "day")
-		.unix();
-	return jwt.sign(dataUser, env.REFRESH_TOKEN_SECRET_PRIVATE, {
-		algorithm: "RS256",
-		expiresIn,
-	});
+    const expiresIn = dayjs().add(env.REFRESH_TOKEN_EXPIRATION_DAYS, "day").unix();
+    return jwt.sign(dataUser, env.REFRESH_TOKEN_SECRET_PRIVATE, {
+        algorithm: "RS256",
+        expiresIn
+    });
 };
 
 const verifyRefreshToken = async (refreshToken) => {
-	try {
-		return jwt.verify(refreshToken, env.REFRESH_TOKEN_SECRET_PUBLIC, {
-			algorithms: ["RS256"],
-		});
-	} catch (err) {
-		if (err.name === "TokenExpiredError") {
-			throw new errorAPI("Session expired", 401);
-		} else if (err.name === "JsonWebTokenError") {
-			throw new errorAPI("Session is invalid", 401);
-		}
+    try {
+        return jwt.verify(refreshToken, env.REFRESH_TOKEN_SECRET_PUBLIC, {
+            algorithms: ["RS256"]
+        });
+    } catch (err) {
+        if (err.name === "TokenExpiredError") {
+            throw new errorAPI("Session expired", 401);
+        } else if (err.name === "JsonWebTokenError") {
+            throw new errorAPI("Session is invalid", 401);
+        }
 
-		throw err;
-	}
+        throw err;
+    }
 };
 
 const generateCsrfToken = async () => {
-	return csrfTokens.create(env.CSRF_SECRET);
+    return csrfTokens.create(env.CSRF_SECRET);
 };
 
 const verifyCsrfToken = async (token) => {
-	return csrfTokens.verify(env.CSRF_SECRET, token);
+    return csrfTokens.verify(env.CSRF_SECRET, token);
 };
 
 const generateResetPasswordToken = async (email) => {
-	const expiresIn = dayjs()
-		.add(env.RESET_PASSWORD_TOKEN_EXPIRATION_MINUTES, "minute")
-		.format("YYYY-MM-DD HH:mm:ss");
-	const token = await generateRandomToken(34);
+    const expiresIn = dayjs().add(env.RESET_PASSWORD_TOKEN_EXPIRATION_MINUTES, "minute").format("YYYY-MM-DD HH:mm:ss");
+    const token = await generateRandomToken(34);
 
-	const user = await prisma.user.findUnique({
-		select: {
-			id: true,
-			email: true,
-		},
-		where: {
-			email: email,
-		},
-	});
+    const user = await prisma.user.findUnique({
+        select: {
+            id: true,
+            email: true
+        },
+        where: {
+            email: email
+        }
+    });
 
-	const passwordResetToken = await prisma.token.create({
-		data: {
-			token,
-			user_id: user.id,
-			expiresIn,
-			token_type: "PasswordReset",
-		},
-	});
+    const passwordResetToken = await prisma.token.create({
+        data: {
+            token,
+            user_id: user.id,
+            expiresIn,
+            token_type: "ResetPassword"
+        }
+    });
 
-	return passwordResetToken.token;
+    return passwordResetToken.token;
 };
 
 const generateVerificationEmailToken = async (user) => {
-	const expiresIn = dayjs()
-		.add(env.VERIFY_EMAIL_TOKEN_EXPIRATION_MINUTES, "minute")
-		.format("YYYY-MM-DD HH:mm:ss");
-	const token = await generateRandomToken(34);
+    const expiresIn = dayjs().add(env.VERIFY_EMAIL_TOKEN_EXPIRATION_MINUTES, "minute").format("YYYY-MM-DD HH:mm:ss");
+    const token = await generateRandomToken(34);
 
-	const verifyEmailToken = await prisma.token.create({
-		data: {
-			token,
-			user_id: user.id,
-			expiresIn,
-			token_type: "VerifyEmail",
-		},
-	});
+    const verifyEmailToken = await prisma.token.create({
+        data: {
+            token,
+            user_id: user.id,
+            expiresIn,
+            token_type: "VerificationEmail"
+        }
+    });
 
-	return verifyEmailToken.token;
+    return verifyEmailToken.token;
 };
 
 const verifyToken = async (token, type) => {
-	const dbToken = await prisma.token.findFirst({
-		where: {
-			token,
-			token_type: type,
-		},
-	});
+    const dbToken = await prisma.token.findFirst({
+        where: {
+            token,
+            token_type: type
+        }
+    });
 
-	if (!dbToken) {
-		throw new errorAPI("Token not found", 404);
-	}
-	const expiresIn = dayjs(dbToken.expiresIn, "YYYY-MM-DD HH:mm:ss");
+    if (!dbToken) {
+        throw new errorAPI("Token not found", 404);
+    }
+    const expiresIn = dayjs(dbToken.expiresIn, "YYYY-MM-DD HH:mm:ss");
 
-	if (expiresIn.isBefore(dayjs())) {
-		await prisma.token.delete({
-			where: {
-				token,
-				token_type: type,
-			},
-		});
-		throw new errorAPI("Token expired", 401);
-	}
-		
-	return dbToken;
+    if (expiresIn.isBefore(dayjs())) {
+        await prisma.token.delete({
+            where: {
+                token,
+                token_type: type
+            }
+        });
+        throw new errorAPI("Token expired", 401);
+    }
+
+    return dbToken;
 };
 
 export default {
-	hashToken,
-	generateRandomToken,
-	generateAccessToken,
-	verifyAccessToken,
-	generateRefreshToken,
-	verifyRefreshToken,
-	generateCsrfToken,
-	verifyCsrfToken,
-	generateResetPasswordToken,
-	generateVerificationEmailToken,
-	verifyToken,
+    hashToken,
+    generateRandomToken,
+    generateAccessToken,
+    verifyAccessToken,
+    generateRefreshToken,
+    verifyRefreshToken,
+    generateCsrfToken,
+    verifyCsrfToken,
+    generateResetPasswordToken,
+    generateVerificationEmailToken,
+    verifyToken
 };

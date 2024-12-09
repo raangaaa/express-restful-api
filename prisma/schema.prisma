@@ -10,6 +10,7 @@ datasource db {
 enum Gender {
   Male
   Female
+  Other
 }
 
 enum Pronouns {
@@ -26,8 +27,8 @@ enum Roles {
 }
 
 enum TokenType {
-  PasswordReset
-  VerifyEmail
+  ResetPassword
+  VerificationEmail
 }
 
 model User {
@@ -37,33 +38,32 @@ model User {
   password        String    @db.VarChar(255)
   role            Roles     @default(User)
   email_verified  DateTime? @db.DateTime()
-  google_id       String?   @db.LongText
-  facebook_id     String?   @db.LongText
+  oauth_id        String?   @db.LongText
+  oauth_provider  String?   @db.VarChar(50)
   created_at      DateTime  @db.Timestamp() @default(now())
   update_at       DateTime? @db.Timestamp() @updatedAt()
   delete_at       DateTime? @db.Timestamp()
-  suspend_at      DateTime? @db.DateTime()
+  suspend_at      DateTime? @db.Timestamp()
 
   Profile         Profile?
   Token           Token[]   @relation(map: "Token_ibfk_1")
 }
 
 model Profile {
-  id        BigInt    @id @default(autoincrement())
+  user_id   BigInt    @unique
   name      String    @db.VarChar(255)
   bio       String?   @db.Text
   url       String?   @db.Text
   pronouns  Pronouns?
   gender    Gender?
-  user_id   BigInt    @unique
   update_at DateTime? @db.Timestamp() @updatedAt()
 
   User      User      @relation(fields: [user_id], references: [id], onUpdate: Restrict, map: "Profile_ibfk_1")
 }
 
 model Token {
-  token       String    @db.VarChar(66) @unique
   user_id     BigInt      
+  token       String    @db.VarChar(66) @unique
   expiresIn   DateTime  @db.DateTime()
   token_type  TokenType
 

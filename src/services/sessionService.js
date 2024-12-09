@@ -4,52 +4,43 @@ import tokenService from "../services/tokenService.js";
 import env from "../../configs/env.js";
 import { logger } from "../../configs/logging.js";
 
-
 const getOneSession = async (refreshToken) => {
-	const payloadRefreshToken = await tokenService.verifyRefreshToken(refreshToken);
-	const hashedRefreshToken = await tokenService.hashToken(refreshToken);
-	const key = `session:${payloadRefreshToken.id}:${hashedRefreshToken}`;
+    const payloadRefreshToken = await tokenService.verifyRefreshToken(refreshToken);
+    const hashedRefreshToken = await tokenService.hashToken(refreshToken);
+    const key = `session:${payloadRefreshToken.id}:${hashedRefreshToken}`;
 
-	return await cacheService.get(key);
+    return await cacheService.get(key);
 };
 
 const getAllSesssion = async (userId) => {
-	const patternkey = `session:${userId}:*`;
+    const patternkey = `session:${userId}:*`;
 
-	return await cacheService.getAll(patternkey);
+    return await cacheService.getAll(patternkey);
 };
 
 const setSession = async (userId, refreshToken, ipAddress, userAgent) => {
-	const sessionData = {
-		user_id: userId,
-		refresh_token: refreshToken,
-		ip_address: ipAddress,
-		user_agent: userAgent,
-		login_time: dayjs().format("YYYY-MM-DD HH:mm:ss"),
-	};
+    const sessionData = {
+        user_id: userId,
+        refresh_token: refreshToken,
+        ip_address: ipAddress,
+        user_agent: userAgent,
+        login_time: dayjs().format("YYYY-MM-DD HH:mm:ss")
+    };
 
-	const hashedRefreshToken = await tokenService.hashToken(refreshToken);
+    const hashedRefreshToken = await tokenService.hashToken(refreshToken);
 
-	await cacheService.set(
-		`session:${userId}:${hashedRefreshToken}`,
-		sessionData,
-		env.REFRESH_TOKEN_EXPIRATION_DAYS * 86400
-	);
+    await cacheService.set(`session:${userId}:${hashedRefreshToken}`, sessionData, env.REFRESH_TOKEN_EXPIRATION_DAYS * 86400);
 
-	logger.info(
-		`User Id: ${userId} creating session for ${userAgent} and IP ${ipAddress}`
-	);
+    logger.info(`User Id: ${userId} creating session for ${userAgent} and IP ${ipAddress}`);
 };
 
 const delSession = async (refreshToken) => {
-	const payloadRefreshToken = await tokenService.verifyRefreshToken(refreshToken);
-	const hashedRefreshToken = await tokenService.hashToken(refreshToken);
+    const payloadRefreshToken = await tokenService.verifyRefreshToken(refreshToken);
+    const hashedRefreshToken = await tokenService.hashToken(refreshToken);
 
-	await cacheService.del(`session:${payloadRefreshToken.id}:${hashedRefreshToken}`);
+    await cacheService.del(`session:${payloadRefreshToken.id}:${hashedRefreshToken}`);
 
-	logger.info(
-		`User Id: ${userId} deleting session for ${userAgent} and IP ${ipAddress}`
-	);
+    logger.info(`User Id: ${userId} deleting session for ${userAgent} and IP ${ipAddress}`);
 };
 
 export default { getOneSession, getAllSesssion, setSession, delSession };
