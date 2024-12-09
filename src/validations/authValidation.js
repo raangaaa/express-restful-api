@@ -62,7 +62,7 @@ const signin = {
 		.options({ stripUnknown: true }),
 };
 
-const updateMe = {
+const updateAccount = {
 	body: Joi.object()
 		.keys({
 			name: Joi.string().trim().max(150).required(),
@@ -97,14 +97,14 @@ const resetPassword = {
 				)
 				.messages({
 					"string.pattern.base":
-						"Password harus mengandung huruf besar, huruf kecil, angka, dan karakter khusus.",
+						"Password must contains uppercase letters, lowercase letters, numbers, and special characters.",
 				}),
 			confirmPassword: Joi.string()
 				.trim()
 				.required()
 				.valid(Joi.ref("password"))
 				.messages({
-					"any.only": "Password dan confirmPassword harus sama.",
+					"any.only": "Password and confirmation must be the same.",
 				}),
 		})
 		.options({ stripUnknown: true }),
@@ -119,7 +119,7 @@ const verifyEmail = {
 export default {
 	signup,
 	signin,
-	updateMe,
+	updateAccount,
 	forgotPassword,
 	resetPassword,
 	verifyEmail,

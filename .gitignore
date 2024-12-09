@@ -6,3 +6,5 @@ node_modules
 ssl/*.pem
 ssl/*.key
 ssl/*.crt
+
+prisma/migrations

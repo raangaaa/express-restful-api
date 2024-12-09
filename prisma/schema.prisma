@@ -40,9 +40,9 @@ model User {
   google_id       String?   @db.LongText
   facebook_id     String?   @db.LongText
   created_at      DateTime  @db.Timestamp() @default(now())
-  update_at       DateTime  @db.Timestamp() @updatedAt()
-  delete_at       DateTime  @db.Timestamp()
-  suspend_at      DateTime  @db.DateTime()
+  update_at       DateTime? @db.Timestamp() @updatedAt()
+  delete_at       DateTime? @db.Timestamp()
+  suspend_at      DateTime? @db.DateTime()
 
   Profile         Profile?
   Token           Token[]   @relation(map: "Token_ibfk_1")
@@ -56,7 +56,7 @@ model Profile {
   pronouns  Pronouns?
   gender    Gender?
   user_id   BigInt    @unique
-  update_at DateTime  @db.Timestamp() @updatedAt()
+  update_at DateTime? @db.Timestamp() @updatedAt()
 
   User      User      @relation(fields: [user_id], references: [id], onUpdate: Restrict, map: "Profile_ibfk_1")
 }

@@ -8,13 +8,11 @@ const verified = async (req, res, next) => {
 			req.headers["authorization"] || req.headers["Authorization"];
 
 		if (!accessToken) {
-			return next(new errorAPI("Access token missing", 403));
+			throw new errorAPI("Access token missing", 401);
 		}
 
 		if (!accessToken.startsWith("Bearer ")) {
-			return next(
-				new errorAPI("Invalid access token format", 403)
-			);
+			throw new errorAPI("Invalid access token format", 401);
 		}
 
 		const token = accessToken.split(" ")[1];
@@ -37,11 +35,7 @@ const verified = async (req, res, next) => {
 
 		next();
 	} catch (err) {
-		if (err instanceof errorAPI) {
-			return next(new errorAPI(err.message, err.status));
-		}
-
-		return next(err);
+		throw err;
 	}
 };
 

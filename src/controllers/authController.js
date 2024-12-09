@@ -1,45 +1,28 @@
-import dayjs from "dayjs";
 import bcrypt from "bcrypt";
 import passport from "passport";
-import prisma from "../../prisma/prisma.js";
-import sanitizeAndValidate from "../utils/validate.js";
-import authValidation from "../validations/authValidation.js";
 import { logger } from "../../configs/logging.js";
 import tokenService from "../services/tokenService.js";
 import sessionService from "../services/sessionService.js";
-import publisEvent from "../events/eventEmitter.js";
+import userService from "../services/crud/userService.js";
 import startWorker from "../tasks/worker.js";
+import errorAPI from "../utils/errorAPI.js";
 
 const signup = async (req, res) => {
 	try {
-		const { error, value } = sanitizeAndValidate(authValidation.signup, req);
+		const hashedPassword = await bcrypt.hash(req.data.body.password, 12);
 
-		if (error) {
-			return res.status(400).json({
-				success: false,
-				statusCode: 400,
-				message: "Validation error",
-				errors: error.details.map((detail) => detail.message),
-			});
-		}
-
-		const hashedPassword = await bcrypt.hash(value.body.password, 12);
-
-		const user = await prisma.user.create({
-			data: {
-				...value.body,
-				Profile: {
-					create: {
-						name: value.body.name,
-					},
+		const user = await userService.create({
+			username: req.data.body.username,
+			email: req.data.body.email,
+			Profile: {
+				create: {
+					name: req.data.body.name,
 				},
-				password: hashedPassword,
 			},
+			password: hashedPassword,
 		});
 
-		const verificationEmailToken = await tokenService.generateVerifyEmailToken(
-			user
-		);
+		const verificationEmailToken = await tokenService.generateVerificationEmailToken(user);
 
 		startWorker(
 			{
@@ -65,60 +48,27 @@ const signup = async (req, res) => {
 		});
 	} catch (err) {
 		logger.error("Error during signup:", err);
-
-		if (err instanceof errorAPI) {
-			return res.status(err.status).json({
-				success: false,
-				statusCode: err.status,
-				message: err.message,
-				errors: [err.message],
-			});
-		}
-
-		return res.status(500).json({
-			success: false,
-			statusCode: 500,
-			message: "An error occurred during signup",
-			errors: ["An error occurred during signup"],
-		});
+		throw err;
 	}
 };
 
 const signin = async (req, res) => {
 	try {
-		const { error, value } = sanitizeAndValidate(authValidation.signin, req);
-
-		if (error) {
-			return res.status(400).json({
-				success: false,
-				statusCode: 400,
-				message: "Validation error",
-				errors: error.details.map((detail) => detail.message),
-			});
-		}
-
-		const user = await prisma.user.findFirst({
-			where: {
-				OR: [{ email: value.body.email }, { username: value.body.username }],
-			},
+		const user = await userService.findOne({
+			OR: [
+				{ email: req.data.body.email },
+				{ username: req.data.body.username },
+			],
 		});
 
 		if (!user) {
-			return res.status(401).json({
-				success: false,
-				statusCode: 401,
-				message: "Sign in failed",
-				errors: ["Sign in failed"],
-			});
+			throw new errorAPI("Sign in failed", 401, ["Invalid credentials"]);
 		}
 
 		if (user.google_id !== null || user.facebook_id !== null) {
-			return res.status(401).json({
-				success: false,
-				statusCode: 401,
-				message: "Sign in failed, you was sign in with other action",
-				errors: ["Sign in failed, you was sign in with other action"],
-			});
+			throw new errorAPI("Sign in failed", 401, [
+				"You was sign in with other method",
+			]);
 		}
 
 		const isPasswordValid = await bcrypt.compare(
@@ -127,16 +77,13 @@ const signin = async (req, res) => {
 		);
 
 		if (!isPasswordValid) {
-			return res.status(401).json({
-				success: false,
-				statusCode: 401,
-				message: "Sign in failed",
-				errors: ["Sign in failed"],
-			});
+			throw new errorAPI("Sign in failed", 401, ["Invalid credentials"]);
 		}
 
 		const userData = {
 			id: user.id,
+			email: user.email,
+			email_verified: user.email_verified
 		};
 
 		const accessToken = await tokenService.generateAccessToken(userData);
@@ -173,28 +120,13 @@ const signin = async (req, res) => {
 				token: {
 					access_token: accessToken,
 					csrf_token: csrfToken,
+					refresh_token: refreshToken
 				},
 			},
 		});
 	} catch (err) {
 		logger.error("Error during signin:", err);
-
-		if (err instanceof errorAPI) {
-			return res.status(err.status).json({
-				success: false,
-				statusCode: err.status,
-				message: err.message,
-				error: [err.message],
-			});
-		}
-
-		logger.error("Error during signin:", err);
-		return res.status(500).json({
-			success: false,
-			statusCode: 500,
-			message: "An error occurred during signin.",
-			errors: ["An error occurred during signin."],
-		});
+		throw err;
 	}
 };
 
@@ -211,27 +143,14 @@ const signout = async (req, res) => {
 			statusCode: 200,
 			message: "Signout successfull",
 			data: {
-				csrf_token: csrfToken,
+				token: {
+					csrf_token: csrfToken,
+				}
 			},
 		});
 	} catch (err) {
 		logger.error("Error during signout:", err);
-
-		if (err instanceof errorAPI) {
-			return res.status(err.status).json({
-				success: false,
-				statusCode: err.status,
-				message: err.message,
-				errors: [err.message],
-			});
-		}
-
-		return res.status(500).json({
-			success: false,
-			statusCode: 500,
-			message: "An error occurred during signout",
-			errors: ["An error occurred during signout"],
-		});
+		throw err;
 	}
 };
 
@@ -242,21 +161,11 @@ const refresh = async (req, res) => {
 		const currentSession = await sessionService.getOneSession(refreshToken);
 
 		if (!currentSession) {
-			return res.status(401).json({
-				success: false,
-				statusCode: 401,
-				message: "Session expired",
-				errors: ["Session expired"],
-			});
+			throw new errorAPI("Session expired", 401, ["Refresh token expired"]);
 		}
 
-		const payloadRefreshToken = await tokenService.verifyRefreshToken(
-			refreshToken
-		);
-
-		const accessToken = await tokenService.generateAccessToken(
-			payloadRefreshToken
-		);
+		const payloadRefreshToken = await tokenService.verifyRefreshToken(refreshToken);
+		const accessToken = await tokenService.generateAccessToken(payloadRefreshToken);
 		const csrfToken = await tokenService.generateCsrfToken();
 
 		return res.status(200).json({
@@ -272,53 +181,22 @@ const refresh = async (req, res) => {
 		});
 	} catch (err) {
 		logger.error("Error during refresh:", err);
-
-		if (err instanceof errorAPI) {
-			return res.status(err.status).json({
-				success: false,
-				statusCode: err.status,
-				message: err.message,
-				errors: [err.message],
-			});
-		}
-
-		return res.status(500).json({
-			success: false,
-			statusCode: 500,
-			message: "An error occurred during signout",
-			errors: ["An error occurred during signout"],
-		});
+		throw err;
 	}
 };
 
-const me = async (req, res) => {
+const account = async (req, res) => {
 	try {
-		const userId = req.user.id;
-
-		const user = await prisma.user.findFirst({
-			where: {
-				id: userId,
-			},
-			select: {
-				id: true,
-				username: true,
-				email: true,
-				role: true,
-			},
-			include: {
-				Profile: true,
-			},
-		});
-
-		const sessions = await sessionService.getAllSesssion(userId);
+		const user = await userService.findOne(
+			{ id: req.user.id },
+			{ Profile: true }
+		);
+		const sessions = await sessionService.getAllSesssion(req.user.id);
 
 		if (!user) {
-			return res.status(404).json({
-				success: false,
-				statusCode: 404,
-				message: "User not found",
-				errors: ["User not found"],
-			});
+			throw new errorAPI("Account data not found", 404, [
+				"Account data not found credentials",
+			]);
 		}
 
 		return res.status(200).json({
@@ -332,47 +210,16 @@ const me = async (req, res) => {
 		});
 	} catch (err) {
 		logger.error("Error during find user data:", err);
-
-		if (err instanceof errorAPI) {
-			return res.status(err.status).json({
-				success: false,
-				statusCode: err.status,
-				message: err.message,
-				errors: [err.message],
-			});
-		}
-
-		return res.status(500).json({
-			success: false,
-			statusCode: 500,
-			message: "An error occurred during get user data",
-			errors: ["An error occurred during get user data"],
-		});
+		throw err;
 	}
 };
 
-const updateMe = async (req, res) => {
+const updateAccount = async (req, res) => {
 	try {
-		const userId = req.user.id;
-		const { error, value } = sanitizeAndValidate(authValidation.updateMe, req);
-
-		if (error) {
-			return res.status(400).json({
-				success: false,
-				statusCode: 400,
-				message: "Validation error",
-				errors: error.details.map((detail) => detail.message),
-			});
-		}
-
-		const user = await prisma.profile.update({
-			where: {
-				user_id: userId,
-			},
-			data: {
-				...value.body,
-			},
-		});
+		const user = await userService.update(
+			{ id: req.user.id },
+			{ ...req.data.body }
+		);
 
 		logger.info(`${user.name} has been update the profile`);
 
@@ -386,36 +233,24 @@ const updateMe = async (req, res) => {
 		});
 	} catch (err) {
 		logger.error("Error during update user profile:", err);
-
-		if (err instanceof errorAPI) {
-			return res.status(err.status).json({
-				success: false,
-				statusCode: err.status,
-				message: err.message,
-				errors: [err.message],
-			});
-		}
-
-		return res.status(500).json({
-			success: false,
-			statusCode: 500,
-			message: "An error occurred during signup",
-			errors: ["An error occurred during signup"],
-		});
+		throw err;
 	}
 };
 
+const deleteAccount = async (req, res) => {
+	try {
+		await userService.destroy({ id: req.user.id });
+		return res.status(204)
+	} catch (err) {
+		logger.error("Error during deleting user account:", err);
+		throw err;
+	}
+}
+
 const sendVerificationEmail = async (req, res) => {
 	try {
-		const user = await prisma.user.findFirst({
-			where: {
-				id: req.user.id,
-			},
-		});
-
-		const verificationEmailToken = await tokenService.generateVerifyEmailToken(
-			user
-		);
+		const user = await userService.findOne({ id: req.user.id });
+		const verificationEmailToken = await tokenService.generateVerificationEmailToken(user);
 
 		startWorker(
 			{
@@ -426,7 +261,7 @@ const sendVerificationEmail = async (req, res) => {
 			"emailSendWorker.js"
 		);
 
-		logger.info(`${user.username} resend verification email`);
+		logger.info(`${user.username} send verification email to ${user.email}`);
 
 		return res.status(202).json({
 			success: true,
@@ -435,54 +270,18 @@ const sendVerificationEmail = async (req, res) => {
 		});
 	} catch (err) {
 		logger.error("Error during send verification user email:", err);
-
-		if (err instanceof errorAPI) {
-			return res.status(err.status).json({
-				success: false,
-				statusCode: err.status,
-				message: err.message,
-				errors: [err.message],
-			});
-		}
-
-		return res.status(500).json({
-			success: false,
-			statusCode: 500,
-			message: "An error occurred during signup",
-			errors: ["An error occurred during signup"],
-		});
+		throw err;
 	}
 };
 
 const verifyEmail = async (req, res) => {
 	try {
-		const { error, value } = sanitizeAndValidate(
-			authValidation.verifyEmail,
-			req
-		);
-
-		if (error) {
-			return res.status(400).json({
-				success: false,
-				statusCode: 400,
-				message: "Validation error",
-				errors: error.details.map((detail) => detail.message),
-			});
-		}
-
 		const tokenTicket = await tokenService.verifyToken(
-			value.params.token,
+			req.params.token,
 			"VerifyEmail"
 		);
 
-		const user = await prisma.user.update({
-			where: {
-				id: tokenTicket.user_id,
-			},
-			data: {
-				email_verified: dayjs().format("YYYY-MM-DD HH:mm:ss"),
-			},
-		});
+		const user = await userService.verifyEmail(tokenTicket.user_id)
 
 		logger.info(`${user.username} has verify her email`);
 
@@ -493,47 +292,17 @@ const verifyEmail = async (req, res) => {
 		});
 	} catch (err) {
 		logger.error("Error during verify user email:", err);
-
-		if (err instanceof errorAPI) {
-			return res.status(err.status).json({
-				success: false,
-				statusCode: err.status,
-				message: err.message,
-				errors: [err.message],
-			});
-		}
-
-		return res.status(500).json({
-			success: false,
-			statusCode: 500,
-			message: "An error occurred during signup",
-			errors: ["An error occurred during signup"],
-		});
+		throw err;
 	}
 };
 
 const forgotPassword = async (req, res) => {
 	try {
-		const { error, value } = sanitizeAndValidate(
-			authValidation.forgotPassword,
-			req
-		);
-
-		if (error) {
-			return res.status(400).json({
-				success: false,
-				statusCode: 400,
-				message: "Validation error",
-				errors: error.details.map((detail) => detail.message),
-			});
-		}
-
-		const passwordResetToken =
-			await tokenService.generateResetPasswordToken(value.body.email);
+		const passwordResetToken = await tokenService.generateResetPasswordToken(req.data.body.email);
 
 		startWorker(
 			{
-				typeEmail: "verificationEmail",
+				typeEmail: "passwordResetEmail",
 				emailTo: value.body.email,
 				passwordResetToken,
 			},
@@ -549,54 +318,23 @@ const forgotPassword = async (req, res) => {
 		});
 	} catch (err) {
 		logger.error("Error during send email user password reset:", err);
-
-		if (err instanceof errorAPI) {
-			return res.status(err.status).json({
-				success: false,
-				statusCode: err.status,
-				message: err.message,
-				errors: [err.message],
-			});
-		}
-
-		return res.status(500).json({
-			success: false,
-			statusCode: 500,
-			message: "An error occurred during signup",
-			errors: ["An error occurred during signup"],
-		});
+		throw err;
 	}
 };
 
-const passwordReset = async (req, res) => {
+const resetPassword = async (req, res) => {
 	try {
-		const { error, value } = sanitizeAndValidate(
-			authValidation.resetPassword,
-			req
-		);
-
-		if (error) {
-			return res.status(400).json({
-				success: false,
-				statusCode: 400,
-				message: "Validation error",
-				errors: error.details.map((detail) => detail.message),
-			});
-		}
-
 		const tokenTicket = await tokenService.verifyToken(
-			value.params.token,
+			req.params.token,
 			"PasswordReset"
 		);
 
-		const user = await prisma.user.update({
-			where: {
-				id: tokenTicket.user_id,
-			},
-			data: {
-				password: value.body.password,
-			},
-		});
+		const hashedPassword = await bcrypt.hash(req.data.body.password, 12);
+
+		const user = await userService.update(
+			{ id: tokenTicket.user_id },
+			{ password: hashedPassword }
+		);
 
 		logger.info(`${user.username} has reseting password`);
 
@@ -607,22 +345,7 @@ const passwordReset = async (req, res) => {
 		});
 	} catch (err) {
 		logger.error("Error during reset user password:", err);
-
-		if (err instanceof errorAPI) {
-			return res.status(err.status).json({
-				success: false,
-				statusCode: err.status,
-				message: err.message,
-				errors: [err.message],
-			});
-		}
-
-		return res.status(500).json({
-			success: false,
-			statusCode: 500,
-			message: "An error occurred during signup",
-			errors: ["An error occurred during signup"],
-		});
+		throw err;
 	}
 };
 
@@ -635,7 +358,7 @@ const loginWithGoogle = passport.authenticate("google", {
 const googleCallback = async (req, res) => {
 	try {
 		const user = req.user;
-		const accessToken = await tokenService.generateAccessToken(user);
+		const accessToken = await tokenService.generateAccessToken(user)
 		const refreshToken = await tokenService.generateRefreshToken(user);
 		const csrfToken = await tokenService.generateCsrfToken();
 
@@ -669,27 +392,13 @@ const googleCallback = async (req, res) => {
 				token: {
 					access_token: accessToken,
 					csrf_token: csrfToken,
+					refresh_token: refreshToken
 				},
 			},
 		});
 	} catch (err) {
 		logger.error("Error during signin with google:", err);
-
-		if (err instanceof errorAPI) {
-			return res.status(err.status).json({
-				success: false,
-				statusCode: err.status,
-				message: err.message,
-				error: [err.message],
-			});
-		}
-
-		return res.status(500).json({
-			success: false,
-			statusCode: 500,
-			message: "An error occurred during signin.",
-			errors: ["An error occurred during signin."],
-		});
+		throw err;
 	}
 };
 
@@ -734,27 +443,13 @@ const facebookCallback = async (req, res) => {
 				token: {
 					access_token: accessToken,
 					csrf_token: csrfToken,
+					refresh_token: refreshToken
 				},
 			},
 		});
 	} catch (err) {
 		logger.error("Error during signin with facebook:", err);
-
-		if (err instanceof errorAPI) {
-			return res.status(err.status).json({
-				success: false,
-				statusCode: err.status,
-				message: err.message,
-				error: [err.message],
-			});
-		}
-
-		return res.status(500).json({
-			success: false,
-			statusCode: 500,
-			message: "An error occurred during signin.",
-			errors: ["An error occurred during signin."],
-		});
+		throw err;
 	}
 };
 
@@ -765,12 +460,13 @@ export default {
 	signin,
 	signout,
 	refresh,
-	me,
-	updateMe,
+	account,
+	updateAccount,
+	deleteAccount,
 	sendVerificationEmail,
 	verifyEmail,
 	forgotPassword,
-	passwordReset,
+	resetPassword,
 	loginWithGoogle,
 	googleCallback,
 	loginWithFacebook,

@@ -14,7 +14,7 @@ const csrfMiddleware = async (req, res, next) => {
 			sucess: false,
 			statusCode: 403,
 			message: "CSRF token missing",
-			error: "CSRF token missing",
+			errors: ["CSRF token missing"],
 		});
 	}
 
@@ -25,7 +25,7 @@ const csrfMiddleware = async (req, res, next) => {
 				success: false,
 				statusCode: 403,
 				message: "CSRF token mismatch or invalid",
-				error: "CSRF token mismatch or invalid",
+				errors: ["CSRF token mismatch or invalid"],
 			});
 		}
 	}

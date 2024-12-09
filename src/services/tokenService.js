@@ -104,7 +104,7 @@ const generateResetPasswordToken = async (email) => {
 	return passwordResetToken.token;
 };
 
-const generateVerifyEmailToken = async (user) => {
+const generateVerificationEmailToken = async (user) => {
 	const expiresIn = dayjs()
 		.add(env.VERIFY_EMAIL_TOKEN_EXPIRATION_MINUTES, "minute")
 		.format("YYYY-MM-DD HH:mm:ss");
@@ -131,7 +131,7 @@ const verifyToken = async (token, type) => {
 	});
 
 	if (!dbToken) {
-		throw new errorAPI("Token not found", 401);
+		throw new errorAPI("Token not found", 404);
 	}
 	const expiresIn = dayjs(dbToken.expiresIn, "YYYY-MM-DD HH:mm:ss");
 
@@ -158,6 +158,6 @@ export default {
 	generateCsrfToken,
 	verifyCsrfToken,
 	generateResetPasswordToken,
-	generateVerifyEmailToken,
+	generateVerificationEmailToken,
 	verifyToken,
 };

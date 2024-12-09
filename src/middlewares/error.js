@@ -14,7 +14,7 @@ export const handler = (err, req, res, next) => {
 			success: false,
 			statusCode: err.status,
 			message: err.message,
-			errors: [err.message],
+			errors: err.errors ? err.errors : [err.message],
 			...(env.NODE_ENV === "development" && { stack: err.stack }),
 		});
 	}
