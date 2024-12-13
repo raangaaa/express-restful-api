@@ -1,5 +1,5 @@
 import Joi from "joi";
-import userService from "../services/crud/userService";
+import userService from "../services/crud/userService.js";
 
 const signup = {
     body: Joi.object()
@@ -65,7 +65,8 @@ const updateAccount = {
             bio: Joi.string(),
             url: Joi.string().trim().uri(),
             pronouns: Joi.string().trim().valid("He", "She", "They", "DontSpecify"),
-            gender: Joi.string().trim().valid("Male", "Female", "Other")
+            gender: Joi.string().trim().valid("Male", "Female", "Other"),
+            avatar: Joi.string().trim()
         })
         .options({ stripUnknown: true })
 };

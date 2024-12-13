@@ -2,7 +2,7 @@ import dayjs from "dayjs";
 import cacheService from "../services/cacheService.js";
 import tokenService from "../services/tokenService.js";
 import env from "../../configs/env.js";
-import { logger } from "../../configs/logging.js";
+import { logger } from "../utils/logger.js";
 
 const getOneSession = async (refreshToken) => {
     const payloadRefreshToken = await tokenService.verifyRefreshToken(refreshToken);

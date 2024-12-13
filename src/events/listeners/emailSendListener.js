@@ -1,6 +1,6 @@
 import publishEvent from "../eventEmitter";
 import emailService from "../../../src/services/emailService/emailService.js";
-import { logger } from "../../../configs/logging.js";
+import { logger } from "../../utils/logger.js";
 
 publishEvent.on("userRegistered", async (user) => {
 	logger.info(

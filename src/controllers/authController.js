@@ -1,6 +1,6 @@
 import bcrypt from "bcrypt";
 import passport from "passport";
-import { logger } from "../../configs/logging.js";
+import { logger } from "../utils/logger.js";
 import tokenService from "../services/tokenService.js";
 import sessionService from "../services/sessionService.js";
 import userService from "../services/crud/userService.js";
@@ -47,7 +47,7 @@ const signup = async (req, res) => {
             }
         });
     } catch (err) {
-        logger.error("Error during signup:", err);
+        logger.error("Error during signup:" + err);
         throw err;
     }
 };
@@ -104,7 +104,7 @@ const signin = async (req, res) => {
             }
         });
     } catch (err) {
-        logger.error("Error during signin:", err);
+        logger.error("Error during signin:" + err);
         throw err;
     }
 };
@@ -126,7 +126,7 @@ const signout = async (req, res) => {
             }
         });
     } catch (err) {
-        logger.error("Error during signout:", err);
+        logger.error("Error during signout:" + err);
         throw err;
     }
 };
@@ -156,7 +156,7 @@ const refresh = async (req, res) => {
             }
         });
     } catch (err) {
-        logger.error("Error during refresh:", err);
+        logger.error("Error during refresh:" + err);
         throw err;
     }
 };
@@ -180,7 +180,7 @@ const account = async (req, res) => {
             }
         });
     } catch (err) {
-        logger.error("Error during find user data:", err);
+        logger.error("Error during find user data:" + err);
         throw err;
     }
 };
@@ -200,7 +200,7 @@ const updateAccount = async (req, res) => {
             }
         });
     } catch (err) {
-        logger.error("Error during update user profile:", err);
+        logger.error("Error during update user profile:" + err);
         throw err;
     }
 };
@@ -210,7 +210,7 @@ const deleteAccount = async (req, res) => {
         await userService.destroy({ id: req.user.id });
         return res.status(204);
     } catch (err) {
-        logger.error("Error during deleting user account:", err);
+        logger.error("Error during deleting user account:" + err);
         throw err;
     }
 };
@@ -237,7 +237,7 @@ const sendVerificationEmail = async (req, res) => {
             message: "Verification email request accepted"
         });
     } catch (err) {
-        logger.error("Error during send verification user email:", err);
+        logger.error("Error during send verification user email:" + err);
         throw err;
     }
 };
@@ -255,7 +255,7 @@ const verifyEmail = async (req, res) => {
             message: "Email verified"
         });
     } catch (err) {
-        logger.error("Error during verify user email:", err);
+        logger.error("Error during verify user email:" + err);
         throw err;
     }
 };
@@ -281,7 +281,7 @@ const forgotPassword = async (req, res) => {
             message: "Password reset request accepted"
         });
     } catch (err) {
-        logger.error("Error during send email user password reset:", err);
+        logger.error("Error during send email user password reset:" + err);
         throw err;
     }
 };
@@ -300,7 +300,7 @@ const resetPassword = async (req, res) => {
             message: "Password has reseted"
         });
     } catch (err) {
-        logger.error("Error during reset user password:", err);
+        logger.error("Error during reset user password:" + err);
         throw err;
     }
 };
@@ -351,7 +351,7 @@ const googleCallback = async (req, res) => {
             }
         });
     } catch (err) {
-        logger.error("Error during signin with google:", err);
+        logger.error("Error during signin with google:" + err);
         throw err;
     }
 };
@@ -400,7 +400,7 @@ const facebookCallback = async (req, res) => {
             }
         });
     } catch (err) {
-        logger.error("Error during signin with facebook:", err);
+        logger.error("Error during signin with facebook:" + err);
         throw err;
     }
 };

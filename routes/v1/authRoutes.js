@@ -5,7 +5,6 @@ import control from "../../src/utils/control.js";
 import sanitizeAndValidate from "../../src/utils/validate.js";
 import authController from "../../src/controllers/authController.js";
 import authValidation from "../../src/validations/authValidation.js";
-import uploadFile from "../../src/middlewares/uploadFile.js";
 
 const router = Router();
 
@@ -15,14 +14,7 @@ router.get("/signout", middleware("auth"), control(authController.signout));
 
 router.get("/refresh", control(authController.refresh));
 router.get("/account", middleware("auth"), control(authController.account));
-router.patch(
-    "/account/update",
-    middleware("auth"),
-    sanitizeAndValidate(authValidation.updateAccount),
-    uploadFile.uploadAvatar("avatar").single("avatar"),
-    uploadFile.validateFile(),
-    control(authController.updateAccount)
-);
+router.patch("/account/update", middleware("auth"), sanitizeAndValidate(authValidation.updateAccount), control(authController.updateAccount));
 router.delete("/account/delete", middleware("auth"), control(authController.deleteAccount));
 
 router.get("/send-verification-email", middleware("auth"), control(authController.sendVerificationEmail));

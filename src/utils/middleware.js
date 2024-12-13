@@ -1,6 +1,6 @@
-import guest from "../middlewares/guest";
-import auth from "../middlewares/auth";
-import verified from "../middlewares/verified";
+import guest from "../middlewares/guest.js";
+import auth from "../middlewares/auth.js";
+import verified from "../middlewares/verified.js";
 
 const listMiddleware = {
     guest,

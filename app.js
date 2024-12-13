@@ -47,7 +47,7 @@ app.use(compression({ threshold: 1024 }));
 app.use(logHTTP());
 
 // Routing
-app.use("/api/v1", routes);
+app.use("/api", routes);
 
 // API error handler
 app.use(error.notFound);

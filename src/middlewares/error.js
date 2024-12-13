@@ -1,5 +1,5 @@
 import env from "../../configs/env.js";
-import { logger } from "../../configs/logging.js";
+import { logger } from "../utils/logger.js";
 import errorAPI from "../utils/errorAPIjs";
 
 export const notFound = (req, res, next) => {

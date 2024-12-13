@@ -1,5 +1,5 @@
 import { Worker } from "worker_threads";
-import { logger } from "../../configs/logging.js";
+import { logger } from "../utils/logger.js";
 
 const startWorker = (data, targerFileName) => {
     const worker = new Worker(`./workers/${targerFileName}`, {
