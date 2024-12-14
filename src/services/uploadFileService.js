@@ -26,42 +26,49 @@ const handleError = (err, reject) => {
 
 /**
  * Upload file to local storage or cloud (AWS/GCS).
+ * @async
  * @param {Object} req - Request from Express.
  * @param {String} type - Category file (example: "image", "document").
  * @param {String} directory - Directory file to save.
  * @param {String} storageType - Type storage ("aws", "gcs", "public").
  * @returns {Promise<Object>} - URL file or local path.
  */
+const handleFileUpload = async (req, type, directory = "uploads", storageType) => {
+    const uploadedFiles = [];
+    const uploadDir = path.join("public", directory.toLowerCase());
+    let uniqueFileName;
 
-const handleFileUpload = (req, type, directory = "uploads", storageType) => {
-    return new Promise((resolve, reject) => {
-        const uploadedFiles = [];   
-        storageType = storageType.toLowerCase();
-        const uploadDir = path.join("public", directory.toLowerCase());
-        if (storageType.toLowerCase() === "public") {
-            fileUtils.ensureDirectoryExists(uploadDir);
-        }
+    if (storageType.toLowerCase() === "public") {
+        fileUtils.ensureDirectoryExists(uploadDir);
+    }
 
-        const form = formidable(
-            storageType.toLowerCase() === "public"
-                ? {
-                      uploadDir,
-                      ...formidableOptions,
-                      filename: (name, ext, part, form) => fileUtils.generateFilename(part.mimetype.split("/")[1])
+    const form = formidable(
+        storageType.toLowerCase() === "public"
+            ? {
+                  uploadDir,
+                  ...formidableOptions,
+                  filename: (name, ext, part, form) => {
+                      uniqueFileName = fileUtils.generateFilename(part.mimetype.split("/")[1]);
+                      return uniqueFileName;
                   }
-                : formidableOptions
-        );
+              }
+            : formidableOptions
+    );
 
-        form.onPart = (part) => {
+    return new Promise((resolve, reject) => {
+        form.onPart = async (part) => {
             try {
                 if (part.originalFilename && part.mimetype) {
                     fileUtils.validateMimeType(type, part.mimetype);
                     if (storageType !== "public") {
-                        uploadFileToCloud(directory, storageType, part, part.mimetype)
-                            .then((url) => {
-                                uploadedFiles.push(url);
-                            })
-                            .catch((err) => handleError(err, reject));
+                        try {
+                            const url = await uploadFileToCloud(directory, storageType, part, part.mimetype);
+                            uploadedFiles.push(url);
+                        } catch (err) {
+                            handleError(err, reject);
+                        }
+                    } else {
+                        uploadedFiles.push(uploadDir + uniqueFileName);
                     }
                 }
             } catch (err) {
@@ -75,7 +82,7 @@ const handleFileUpload = (req, type, directory = "uploads", storageType) => {
             } else if (err.message.includes("maxFileSize")) {
                 handleError(new Error("Max size file is 10mb."), reject);
             } else {
-                handleError(err, reject)
+                handleError(err, reject);
             }
         });
 
@@ -86,7 +93,7 @@ const handleFileUpload = (req, type, directory = "uploads", storageType) => {
     });
 };
 
-const uploadFileToCloud = (directory, storageType, fileStream, mimetype) => {
+const uploadFileToCloud = async (directory, storageType, fileStream, mimetype) => {
     const filename = `${directory}/${fileUtils.generateFilename(mimetype.split("/")[1])}`;
 
     if (storageType.toLowerCase() === "aws") {

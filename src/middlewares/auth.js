@@ -1,6 +1,8 @@
 import tokenService from "../services/tokenService.js";
 import errorAPI from "../utils/errorAPI.js";
 
+// Check request have Authorization Bearer token with valid JWT token
+// if token not provided or invalid or expired will handled function middleware in utils directory to next request to error middleware
 const auth = async (req, res, next) => {
     try {
         const accessToken = req.headers["authorization"] || req.headers["Authorization"];

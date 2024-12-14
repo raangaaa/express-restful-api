@@ -8,6 +8,11 @@ const listMiddleware = {
     verified
 };
 
+/**
+ * Implement multiple middleware 
+ * @param {String|String[]} middlewares - Name of middleware in directory middleware/
+ * @returns {void}
+ */
 const middleware = (middlewares) => async (req, res, next) => {
     try {
         if (!Array.isArray(middlewares)) {

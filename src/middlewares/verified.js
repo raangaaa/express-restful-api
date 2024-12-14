@@ -1,6 +1,7 @@
 import tokenService from "../services/tokenService.js";
 import errorAPI from "../utils/errorAPI.js";
 
+// Chech the user email are verified in JWT payload
 const verified = async (req, res, next) => {
     try {
         const accessToken = req.headers["authorization"] || req.headers["Authorization"];

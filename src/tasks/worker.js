@@ -1,6 +1,14 @@
 import { Worker } from "worker_threads";
 import { logger } from "../utils/logger.js";
 
+/**
+ * Create new worker in new thread
+ * @param {Object} data - Data given for worker
+ * @param {String} targerFileName - File name in directory workers, "exampleWorker.js"
+ * @returns {void}
+ * @example
+ * startWorker({ example1: "example1" }, "exampleWorker.js")
+ */
 const startWorker = (data, targerFileName) => {
     const worker = new Worker(`./workers/${targerFileName}`, {
         workerData: { ...data }

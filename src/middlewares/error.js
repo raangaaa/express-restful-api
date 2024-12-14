@@ -2,10 +2,13 @@ import env from "../../configs/env.js";
 import { logger } from "../utils/logger.js";
 import errorAPI from "../utils/errorAPIjs";
 
+// Handle not provided path request
 export const notFound = (req, res, next) => {
     return next(new errorAPI("Resources not found", 404));
 };
 
+// Error handler middleware
+// Handle function middleware, sanitizeAndValidate, control
 export const handler = (err, req, res, next) => {
     logger.error(err.stack);
 
